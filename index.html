@@ -752,6 +752,8 @@ select.fi option{background:var(--s2);}
       <div><div class="fl">Harga beli (Rp)</div><input class="fi" type="number" id="ei-price" placeholder="850000"></div>
       <div><div class="fl">Tanggal beli</div><input class="fi" type="date" id="ei-date"></div>
     </div>
+    <div class="fl">Nilai pasar (Rp, opsional — isi manual bila tahu)</div>
+    <input class="fi" type="number" id="ei-mval" placeholder="cth. 950000">
     <div class="fl">Lokasi penyimpanan</div>
     <select class="fi" id="ei-stor"><option value="">— pilih lokasi —</option></select>
     <div class="fl">Status display</div>
@@ -873,16 +875,28 @@ select.fi option{background:var(--s2);}
   <div class="ms">
     <div class="mh"></div>
     <div class="mt">Nilai AI semua koleksi</div>
-    <div style="font-size:12px;color:var(--t3);margin-bottom:12px">Estimasi harga Indonesia untuk banyak item sekaligus. Hasil dibatasi 0.5x-1.5x harga beli dan hanya estimasi AI (tanpa cek marketplace).</div>
+    <div style="font-size:12px;color:var(--t3);margin-bottom:12px">Estimasi AI instan, dikalibrasi dengan nilai Tokopedia yang sudah pernah dicek. Untuk harga pasar sungguhan, pakai tombol Cek Tokopedia di bawah.</div>
     <select class="fi" id="va-scope" onchange="vaCount()" style="margin-bottom:8px">
       <option value="missing">Hanya item yang belum punya nilai</option>
-      <option value="nomarket">Semua, kecuali nilai dari data marketplace</option>
+      <option value="nomarket">Semua, kecuali nilai dari Tokopedia/manual</option>
       <option value="all">Semua item (menimpa)</option>
     </select>
     <div id="va-info" style="font-size:12px;margin-bottom:10px"></div>
     <div class="prog" style="height:6px;margin-bottom:6px"><div class="prog-f" id="va-bar" style="width:0%"></div></div>
     <div id="va-status" style="font-size:11px;color:var(--t3);margin-bottom:14px;min-height:14px"></div>
+    <button class="btn-s" style="margin-bottom:10px" onclick="openTpPrompt(tpOldest(25))"><i class="ti ti-search" style="vertical-align:-2px;margin-right:4px"></i>Cek Tokopedia 25 item terlama (lewat Claude di perangkatmu)</button>
     <div style="display:flex;gap:8px"><button class="btn-s" style="flex:1" id="va-close" onclick="vaCancel()">Tutup</button><button class="btn-p" style="flex:1" id="va-go" onclick="runValAll()">Mulai</button></div>
+  </div>
+</div>
+
+<div class="mo" id="tp-m" onclick="if(event.target===this)closeM('tp-m')">
+  <div class="ms">
+    <div class="mh"></div>
+    <div class="mt">Cek harga Tokopedia</div>
+    <div style="font-size:12px;color:var(--t3);margin-bottom:10px;line-height:1.5">Tokopedia memblokir akses dari server cloud, jadi pengecekan dijalankan oleh Claude di perangkatmu. <b>Salin perintah</b> di bawah, lalu tempel di Claude desktop app yang punya akses browser (Claude in Chrome atau browser bawaan). Claude akan membuka Tokopedia, menghitung median harga, dan menulis hasilnya ke Collectro.</div>
+    <div id="tp-sum" style="font-size:12px;font-weight:600;margin-bottom:6px"></div>
+    <textarea class="fi" id="tp-text" rows="8" readonly style="font-size:11px;font-family:monospace;resize:vertical"></textarea>
+    <div style="display:flex;gap:8px"><button class="btn-s" style="flex:1" onclick="closeM('tp-m')">Tutup</button><button class="btn-p" style="flex:1" onclick="copyTp()"><i class="ti ti-checkbox" style="vertical-align:-2px;margin-right:4px"></i>Salin perintah</button></div>
   </div>
 </div>
 
@@ -1434,6 +1448,8 @@ function openDetail(id){
     +'<div style="display:flex;gap:6px;margin-bottom:14px"><span class="badge bpu">'+esc(it.category||'')+'</span>'+(it.status?'<span class="badge bgn">'+esc(it.status)+'</span>':'')+(it.scale?'<span class="badge bam">'+esc(it.scale)+'</span>':'')+'</div>'
     +'<div class="dr"><span class="dk">Harga beli</span><span class="dv">'+fmt(it.price)+'</span></div>'
     +'<div class="dr"><span class="dk">Nilai pasar</span><span class="dv" style="color:var(--gn)">'+fmt(it.marketVal||it.price||0)+(roi!==null?' ('+(roi>=0?'+':'')+roi+'%)':'')+'</span></div>'
+    +'<div class="dr"><span class="dk">Nilai dicek</span><span class="dv">'+esc(fmtDT(it.marketValAt))+'</span></div>'
+    +(it.marketValSrc?'<div class="dr"><span class="dk">Sumber nilai</span><span class="dv" style="text-align:right;max-width:62%">'+esc(it.marketValSrc)+'</span></div>':'')
     +'<div class="dr"><span class="dk">Lokasi</span><span class="dv">'+esc(it.storageName||'—')+'</span></div>'
     +'<div class="dr"><span class="dk">Tanggal beli</span><span class="dv">'+esc(it.buyDate||'—')+'</span></div>'
     +(it.notes?'<div class="dr" style="flex-direction:column;gap:4px"><span class="dk">Catatan</span><span class="dv" style="font-size:12px">'+esc(it.notes)+'</span></div>':'')
@@ -1454,6 +1470,10 @@ function openDetail(id){
   bP.innerHTML='<i class="ti ti-camera" style="vertical-align:-2px;margin-right:4px"></i>'+(it.mainPhotoId?'Ganti foto':'Tambah foto');
   bP.addEventListener('click',function(ev){ev.stopPropagation();askItemPhoto(id);});
   row.parentNode.insertBefore(bP,row.nextSibling);
+  var bT=document.createElement('button');bT.className='btn-s';bT.style.cssText='width:100%;margin-top:8px';
+  bT.innerHTML='<i class="ti ti-search" style="vertical-align:-2px;margin-right:4px"></i>Cek harga Tokopedia (lewat Claude di perangkatmu)';
+  bT.addEventListener('click',function(ev){ev.stopPropagation();openTpPrompt([it]);});
+  bP.parentNode.insertBefore(bT,bP.nextSibling);
   if(it.mainPhotoId){
     var bD=document.createElement('button');bD.className='btn-s';bD.style.cssText='width:100%;margin-top:8px';
     bD.innerHTML='<i class="ti ti-download" style="vertical-align:-2px;margin-right:4px"></i>Unduh foto';
@@ -1470,6 +1490,7 @@ function openEditItem(id){
   document.getElementById('ei-series').value=it.series||'';
   document.getElementById('ei-scale').value=it.scale||'';
   document.getElementById('ei-price').value=it.price||'';
+  document.getElementById('ei-mval').value=it.marketVal||'';
   document.getElementById('ei-date').value=it.buyDate||'';
   document.getElementById('ei-notes').value=it.notes||'';
   // Set kategori
@@ -1516,6 +1537,11 @@ async function saveEditItem(){
       status:document.getElementById('ei-status').value,
       notes:(document.getElementById('ei-notes').value||'').trim(),
     });
+    var cur=items.find(function(i){return i.id===id;})||{};
+    var mv=Math.round(Number(document.getElementById('ei-mval').value)||0);
+    if(mv>0&&mv!==(cur.marketVal||0)){
+      await db.doc('u/'+uid+'/items/'+id).update({marketVal:mv,marketValAt:new Date().toISOString(),marketValSrc:'Manual'});
+    }
     closeM('edit-item-m');
     toast('Koleksi diperbarui ✓');
   }catch(e){toast('Gagal: '+(e.message||e.code));}
@@ -1546,13 +1572,54 @@ async function confirmDelItem(){
   catch(e){toast('Gagal: '+(e.message||e.code));}
 }
 
+// ── CEK TOKOPEDIA (dijalankan Claude di perangkat pemilik) ──
+function fmtDT(iso){
+  if(!iso)return 'Belum pernah';
+  var d=new Date(iso);if(isNaN(d))return String(iso);
+  var M=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  var days=Math.floor((Date.now()-d.getTime())/86400000);
+  return d.getDate()+' '+M[d.getMonth()]+' '+d.getFullYear()+', '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+(days>=1?' ('+days+' hari lalu)':' (hari ini)');
+}
+function tpOldest(n){
+  return items.slice().sort(function(a,b){
+    var ta=/tokopedia|manual/i.test(a.marketValSrc||'')?1:0,tb=/tokopedia|manual/i.test(b.marketValSrc||'')?1:0;
+    if(ta!==tb)return ta-tb;
+    return String(a.marketValAt||'').localeCompare(String(b.marketValAt||''));
+  }).slice(0,n);
+}
+function tpPrompt(list){
+  var rows=list.map(function(it){return '- '+it.id+' | '+it.name+' | '+(it.brand||'-')+' | kondisi '+(it.health||'-')+' | harga beli '+(it.price||0)+' | nilai sekarang '+(it.marketVal||0);}).join('\n');
+  return 'Tolong cek harga pasar Tokopedia untuk '+list.length+' item koleksi Collectro saya, pakai BROWSER di perangkat ini (Claude in Chrome atau browser bawaan Claude app). Jangan pakai web fetch/search dari server: Tokopedia memblokirnya.\n\n'
+   +'Untuk tiap item, buka https://www.tokopedia.com/search?q=<kata kunci> (kata kunci: lini + karakter + versi singkat, mis. "figuarts zero smoker punk hazard"; urutkan default) dan baca daftar listing beserta harganya. Bila hasil tidak relevan, coba sekali dengan kata kunci lebih pendek.\n'
+   +'Saring: hanya produk YANG SAMA (lini, karakter, versi). Buang aksesoris/part/kaos, bootleg/KO/"non ori"/replika, harga Rp1/jelas salah, pre-order produk lain, bundle/lot. Gunpla: bedakan Bandai asli vs Daban.\n'
+   +'Hitung MEDIAN listing yang lolos. Kondisi MISB/MIB pakai listing baru/segel bila ada; BIB campuran; Loose sekitar 70-80% harga bekas lengkap. Tulis bila ada minimal 3 listing cocok (atau 2 listing yang selisihnya ≤30%). Bila hasil di luar 0.5x–2x harga beli, tulis hanya bila ≥4 listing konsisten. Selain itu lewati item tsb.\n\n'
+   +'Simpan hasil ke database Collectro: artifact '+ART_URL+', collection u/'+uid+'/items, doc_id = id di daftar. Baca dulu dokumennya (get) untuk version, lalu update dengan if_version dan data {"marketVal": <int Rupiah>, "marketValAt": "<ISO UTC sekarang>", "marketValSrc": "Tokopedia median <n> listing"}. Jangan ubah field lain. Untuk item yang dilewati cukup update {"marketValAt": "<ISO UTC sekarang>"}.\n'
+   +'Bila kamu tidak punya akses tulis ke database artifact, jangan menulis apa pun; tampilkan saja tabel hasil (nama, median, jumlah listing) supaya saya isi manual lewat Edit item.\n\n'
+   +'Akhiri dengan ringkasan: berapa diperbarui, berapa dilewati, dan perubahan nilai terbesar.\n\n'
+   +'Item (id | nama | brand | kondisi | harga beli | nilai sekarang, Rupiah):\n'+rows;
+}
+var ART_URL='https://claude.ai/artifact/QcAVUyCzgazwG6MitmRpmi';
+function openTpPrompt(list){
+  if(!uid){toast('Login diperlukan');return;}
+  list=(list||[]).filter(Boolean);if(!list.length){toast('Tidak ada item');return;}
+  document.getElementById('tp-sum').textContent=list.length===1?list[0].name:list.length+' item (terlama dicek dulu)';
+  document.getElementById('tp-text').value=tpPrompt(list);
+  closeM('detail-m');closeM('valall-m');
+  setTimeout(function(){openM('tp-m');},60);
+}
+async function copyTp(){
+  var ta=document.getElementById('tp-text');
+  try{await navigator.clipboard.writeText(ta.value);toast('Perintah disalin ✓ — tempel di Claude desktop app');}
+  catch(e){ta.focus();ta.select();try{document.execCommand('copy');toast('Perintah disalin ✓');}catch(x){toast('Tekan lama lalu salin manual');}}
+}
+
 // ── NILAI AI MASSAL ──
 var valRun=false,valCancel=false;
 function vaPick(){
   var sc=document.getElementById('va-scope').value;
   return items.filter(function(it){
     if(sc==='missing')return !it.marketVal;
-    if(sc==='nomarket')return !/tokopedia|shopee|marketplace/i.test(it.marketValSrc||'');
+    if(sc==='nomarket')return !/tokopedia|shopee|marketplace|manual/i.test(it.marketValSrc||'');
     return true;
   });
 }
@@ -1565,12 +1632,20 @@ function openValAll(){
 function vaCancel(){if(valRun){valCancel=true;document.getElementById('va-status').textContent='Menghentikan...';}else closeM('valall-m');}
 function vaClamp(it,v){
   v=Math.round(Number(v)||0);if(v<=0)return 0;
-  if(it.price){var lo=Math.round(it.price*0.5),hi=Math.round(it.price*1.5);if(v>hi)v=hi;else if(v<lo)v=lo;}
+  if(it.price){var lo=Math.round(it.price*0.5),hi=Math.round(it.price*2);if(v>hi)v=hi;else if(v<lo)v=lo;}
   return v;
 }
+// Patokan untuk AI: item yang nilainya dari cek marketplace (Tokopedia/manual) — data pasar nyata
+function valRef(){
+  var r=items.filter(function(it){return it.marketVal&&/tokopedia|manual/i.test(it.marketValSrc||'');}).slice(0,150).map(function(it){
+    return '- '+String(it.name).slice(0,90)+' | '+(it.health||'-')+' | beli '+(it.price||0)+' | pasar '+it.marketVal;
+  });
+  return r.length?'Data pasar nyata dari koleksi pemilik (hasil cek Tokopedia/manual), pakai sebagai patokan utama untuk barang sejenis:\n'+r.join('\n')+'\n':'';
+}
+var VAL_RULES='Estimasi nilai pasar di INDONESIA hari ini dalam Rupiah: perkiraan MEDIAN harga listing barang yang sama di Tokopedia/Shopee (bukan retail Eropa/AS, tanpa ongkir/pajak). Kondisi: MISB/MIB pakai harga barang baru/segel; BIB campuran baru-bekas; Loose sekitar 70-80% harga bekas lengkap. Patokan dasar barang retail: harga rilis Jepang x kurs (sekitar Rp105/yen), lalu sesuaikan kelangkaan/permintaan. Nilai di luar 0.5x-2x harga beli hanya bila barangnya memang langka/limited; jika tidak yakin beri estimasi konservatif. ';
 async function vaEstimate(chunk){
   var list=chunk.map(function(it){return {id:it.id,nama:it.name,brand:it.brand||'',series:it.series||'',kategori:it.category||'',skala:it.scale||'',kondisi:it.health||'A',harga_beli:it.price||0};});
-  var p='Estimasi nilai pasar di INDONESIA hari ini (harga jual ulang / toko hobi lokal, Rupiah), BUKAN harga retail Eropa/AS, tanpa markup ongkir/pajak. Kondisi: MISB sealed, MIB/BIB bagus dalam box, Loose tanpa box (lebih murah). Barang retail biasa jarang bernilai di luar 0.5x-1.5x harga_beli kecuali limited/langka; jika tidak yakin beri estimasi konservatif. Item: '+JSON.stringify(list)+'. Return ONLY JSON array: [{"id":"...","avg":number}] satu objek per item, id harus sama persis.';
+  var p=VAL_RULES+valRef()+'Item: '+JSON.stringify(list)+'. Return ONLY JSON array: [{"id":"...","avg":number}] satu objek per item, id harus sama persis.';
   var res=await sample.json(p,{modelTier:'default'});
   return Array.isArray(res)?res:(res&&res.items)||[];
 }
@@ -1608,16 +1683,16 @@ async function doValuate(id){
   var it=items.find(function(i){return i.id===id;});if(!it)return;
   toast('Estimasi harga...');
   try{
-    var p='Estimasi nilai pasar di INDONESIA hari ini (harga jual ulang / toko hobi lokal, dalam Rupiah), BUKAN harga retail Eropa/AS dan tanpa markup ongkir/pajak. '
+    var p=VAL_RULES+valRef()
       +'Barang: '+it.name+'; Brand: '+(it.brand||'-')+'; Seri: '+(it.series||'-')+'; Kategori: '+(it.category||'-')+'; Skala: '+(it.scale||'-')+'; Kondisi: '+(it.health||'A')+' (MISB/BIB = baru dalam box). '
-      +(it.price?'Harga beli pemilik: Rp '+it.price+' (barang retail biasa jarang bernilai di luar 0.5x-1.5x harga beli, kecuali limited/langka). ':'')
-      +'Jika tidak yakin, beri estimasi konservatif. Return ONLY JSON: {"low":number,"avg":number,"high":number}';
+      +(it.price?'Harga beli pemilik: Rp '+it.price+'. ':'')
+      +'Return ONLY JSON: {"low":number,"avg":number,"high":number}';
     var res=await sample.json(p,{modelTier:'default'});
     var v=Math.round(res&&res.avg||0);
     if(!v||v<=0){toast('Valuasi gagal');return;}
     var capped=false;
-    if(it.price){var lo=Math.round(it.price*0.5),hi=Math.round(it.price*1.5);if(v>hi){v=hi;capped=true;}else if(v<lo){v=lo;capped=true;}}
-    if(db&&uid){await db.doc('u/'+uid+'/items/'+id).update({marketVal:v,marketValAt:new Date().toISOString(),marketValSrc:'Estimasi AI (app)'+(capped?', dibatasi 0.5-1.5x harga beli':'')});toast('Estimasi: '+fmt(v)+(capped?' (dibatasi)':'')+' ✓');}
+    var v0=v;v=vaClamp(it,v);capped=v!==v0;
+    if(db&&uid){await db.doc('u/'+uid+'/items/'+id).update({marketVal:v,marketValAt:new Date().toISOString(),marketValSrc:'Estimasi AI (app)'+(capped?', dibatasi 0.5-2x harga beli':'')});toast('Estimasi: '+fmt(v)+(capped?' (dibatasi)':'')+' ✓');}
   }catch(e){toast('Valuasi gagal');}
 }
 
