@@ -837,10 +837,10 @@ select.fi option{background:var(--s2);}
         <button class="btn-p" id="sc-cam" style="flex:1"><i class="ti ti-camera" style="vertical-align:-2px;margin-right:4px"></i>Kamera</button>
         <button class="btn-s" id="sc-gal" style="flex:1"><i class="ti ti-photo" style="vertical-align:-2px;margin-right:4px"></i>Galeri</button>
       </div>
-      <div id="sc-note" style="display:none;font-size:11px;color:var(--am);background:var(--amb);padding:8px 10px;border-radius:var(--rs);margin-bottom:10px">Perangkat/app ini belum bisa mengirim foto ke AI. Foto tetap bisa disimpan; isi nama atau petunjuk barang di bawah, lalu tap Analisis. Estimasi dibuat dari teks.</div>
+      <div id="sc-note" style="display:none;font-size:11px;color:var(--am);background:var(--amb);padding:8px 10px;border-radius:var(--rs);margin-bottom:10px">Foto belum bisa dikirim ke AI di tampilan ini (izin gambar belum aktif atau app perlu di-refresh). Foto tetap bisa disimpan; isi nama barang di Petunjuk, lalu tap Analisis.</div>
       <div class="fl">Harga di tag / ditawarkan (Rp, opsional)</div>
       <input class="fi" type="number" id="sc-tag" inputmode="numeric" placeholder="cth. 1200000">
-      <div class="fl" style="margin-top:10px">Petunjuk (opsional)</div>
+      <div class="fl" style="margin-top:10px">Petunjuk (opsional, tidak wajib)</div>
       <input class="fi" type="text" id="sc-hint" placeholder="cth. One Piece Figuarts Zero, bekas, tanpa box">
       <button class="btn-p" id="sc-go" style="display:none;width:100%;margin-top:12px">Analisis</button>
     </div>
@@ -1311,6 +1311,26 @@ async function scanRun(file){
   pv.appendChild(hint);
   document.getElementById('sc-go').style.display='block';
 }
+// Daftar ringkas koleksi sebagai patokan harga untuk AI (nama | kondisi | beli | nilai)
+function scanRef(){
+  var rows=items.filter(function(it){return it.name&&(it.price||it.marketVal);}).slice(0,250).map(function(it){
+    return '- '+String(it.name).slice(0,90)+' | '+(it.health||'-')+' | '+(it.price||0)+' | '+(it.marketVal||it.price||0);
+  });
+  return rows.join('\n');
+}
+// Rentang low–high dibatasi ±25% dari rata-rata supaya tidak terlalu lebar
+function scanTighten(r){
+  var avg=Math.round(Number(r.avg)||0),lo=Math.round(Number(r.low)||0),hi=Math.round(Number(r.high)||0);
+  if(avg<=0&&lo>0&&hi>0)avg=Math.round((lo+hi)/2);
+  if(avg<=0)return;
+  if(!lo||lo<avg*0.75||lo>avg)lo=Math.round(avg*(lo&&lo<=avg?Math.max(lo/avg,0.75):0.85));
+  if(!hi||hi>avg*1.25||hi<avg)hi=Math.round(avg*(hi&&hi>=avg?Math.min(hi/avg,1.25):1.15));
+  r.avg=avg;r.low=lo;r.high=hi;
+}
+function scanOwned(m){
+  m=String(m||'').trim().toLowerCase();if(!m)return null;
+  return items.find(function(it){return String(it.name||'').trim().toLowerCase()===m;})||null;
+}
 async function scanAnalyze(){
   var hint0=(document.getElementById('sc-hint').value||'').trim();
   if(!scanImgOK&&!hint0){toast('Isi nama/petunjuk barang dulu');return;}
@@ -1322,16 +1342,21 @@ async function scanAnalyze(){
   try{
     var tag=Number(document.getElementById('sc-tag').value)||0;
     var hint=(document.getElementById('sc-hint').value||'').trim();
-    var p='Kamu pakar kolektor figure/gunpla/diecast/TCG/LEGO/statue di Indonesia, membantu pemilik yang sedang di event/toko. '
-      +(scanImgOK?'Ada '+scanBlobs.length+' foto barang yang sama (mungkin kotak depan, label/belakang, tag harga). LANGKAH 1: baca SEMUA teks yang terlihat di foto (nama produk, nama karakter, brand/logo, seri, skala 1/x, kode produk, JAN/barcode, bahasa Jepang/Inggris di kotak, teks pada tag harga) dan tulis ke field "ocr". LANGKAH 2: simpulkan produk dari teks + bentuk/desain/kotak; kenali lini produk (mis. S.H.Figuarts, Figuarts Zero, Banpresto Grandista, MG/HG/RG/PG, Hot Wheels, Tomica, Pokemon/OPCG, dll) dan nama karakter/pose/versi. ':'Barang dijelaskan pemilik hanya lewat teks; tidak ada foto. ')
-      +(hint?'Petunjuk dari pemilik: '+hint+'. ':'')
-      +'JANGAN menebak: bila teks/produk tidak terbaca jelas, isi name dengan deskripsi apa adanya (mis. "Figure karakter X, kotak tidak terbaca"), set confidence "rendah", dan di notes sebutkan foto apa yang perlu diambil ulang. '
-      +'LANGKAH 3: estimasi harga pasar di INDONESIA hari ini (Rupiah; harga jual ulang / toko hobi lokal, BUKAN retail Eropa/AS, tanpa markup ongkir/pajak; patokan harga resmi Jepang x kurs bila retail baru). Kondisi (MISB/MIB/BIB/Loose) dari yang terlihat. '
+    var p='Kamu pakar kolektor figure/gunpla/diecast/TCG/LEGO/statue yang hafal katalog Bandai/Tamashii, Banpresto, Good Smile, MegaHouse, Kotobukiya, dll., membantu pemilik di event/toko di Indonesia. '
+      +(scanImgOK?'Ada '+scanBlobs.length+' foto dari barang yang SAMA (kotak depan/belakang, label, figure tanpa kotak, atau tag harga). '
+        +'LANGKAH 1 (kenali dari foto, tanpa bantuan pemilik): baca semua teks yang terlihat (nama produk, karakter, logo brand, lini produk, skala, kode produk/JAN, teks Jepang di kotak, tag harga) dan tulis ringkas ke "ocr". Lalu kenali produknya dari teks + bentuk figure, pose, kostum, efek, desain kotak dan base. Sebut nama produk resmi selengkap mungkin: lini (S.H.Figuarts, Figuarts Zero / Extra Battle, Grandista, World Collectable Figure / Log Stories / Mega WCF, Ichiban Kuji prize, P.O.P, MG/HG/RG, Hot Wheels, Tomica, dll.) + karakter + versi/pose. Walau teks tidak terbaca, figure One Piece/anime populer biasanya bisa dikenali dari karakter dan pose: berikan tebakan terbaik dan pakai confidence untuk menyatakan seberapa yakin. '
+        :'Tidak ada foto; barang hanya dijelaskan pemilik lewat teks. ')
+      +(hint?'Petunjuk tambahan dari pemilik: '+hint+'. ':'')
+      +'Confidence: "tinggi" bila lini + karakter + versi teridentifikasi; "sedang" bila karakter dan lini jelas tapi versi/edisi belum pasti; "rendah" hanya bila karakternya pun tidak bisa dikenali. '
+      +'LANGKAH 2: estimasi harga pasar di INDONESIA hari ini dalam Rupiah: harga yang realistis dibayar kolektor di toko hobi lokal / Tokopedia / Shopee / grup FB untuk barang yang sama dan kondisi yang sama (bukan harga retail Eropa/AS, tanpa ongkir/pajak). Patokan: harga rilis Jepang x kurs (sekitar Rp105/yen) lalu sesuaikan dengan kelangkaan dan permintaan. '
+      +'Rentang low–high adalah kisaran harga pasaran yang wajar, BUKAN rentang ketidakpastian: low dan high masing-masing maksimal sekitar 20% dari avg. '
+      +(scanRef()?'Sebagai kalibrasi, berikut koleksi pemilik (nama | kondisi | harga beli | estimasi nilai, Rupiah). Bila barang di foto SAMA dengan salah satunya, isi "match" dengan nama persisnya dan gunakan harganya sebagai patokan; untuk barang sejenis (lini yang sama) gunakan sebagai pembanding skala harga:\n'+scanRef()+'\n':'')
       +(tag?'Harga di tag/ditawarkan: Rp '+tag+'. Nilai apakah wajar dibanding pasar. ':'')
-      +'Waspadai bootleg/KO (cetakan kotak buram, logo salah, kualitas foto produk, harga terlalu murah) dan sebutkan bila ada. '
-      +'Return ONLY JSON: {"ocr":string (teks yang terbaca, ringkas),"name":string,"brand":string,"series":string,"category":"Figure|Gunpla|Diecast|TCG|LEGO|Statue|Lainnya","scale":string,"condition":"MISB|MIB|BIB|Loose","low":number,"avg":number,"high":number,"confidence":"tinggi|sedang|rendah","verdict":string (1 kalimat soal kewajaran harga tag bila ada, jika tidak ada ""),"notes":string (maks 2 kalimat)}';
+      +'Waspadai bootleg/KO (cetakan kotak buram, logo salah, cat kasar, harga terlalu murah) dan sebutkan bila ada. '
+      +'Return ONLY JSON: {"ocr":string,"name":string,"brand":string,"series":string,"category":"Figure|Gunpla|Diecast|TCG|LEGO|Statue|Lainnya","scale":string,"condition":"MISB|MIB|BIB|Loose","low":number,"avg":number,"high":number,"confidence":"tinggi|sedang|rendah","match":string (nama item koleksi yang sama persis, atau ""),"verdict":string (1 kalimat soal kewajaran harga tag bila ada, jika tidak ada ""),"notes":string (maks 2 kalimat; bila confidence bukan tinggi, sebut foto apa yang membantu)}';
     var r=await sample.json(p,scanImgOK?{images:scanBlobs,modelTier:'complex',cache:false}:{modelTier:'complex',cache:false});
     scanRes=r||{};
+    scanTighten(scanRes);
     document.getElementById('sc-name').value=scanRes.name||'';
     document.getElementById('sc-brand').value=scanRes.brand||'';
     document.getElementById('sc-series').value=scanRes.series||'';
@@ -1344,11 +1369,13 @@ async function scanAnalyze(){
     var info='<div style="font-size:11px;color:var(--t3)">Estimasi pasar Indonesia</div>'
       +'<div style="font-size:18px;font-weight:800;margin:2px 0">'+fmt(scanRes.low)+' – '+fmt(scanRes.high)+'</div>'
       +'<div style="font-size:12px">Rata-rata: <b>'+fmt(scanRes.avg)+'</b> · Keyakinan: <b style="color:'+cc+'">'+esc(cf)+'</b></div>';
+    var own=scanOwned(scanRes.match);
+    if(own)info+='<div style="margin-top:8px;padding:6px 8px;border-radius:var(--rs);background:var(--amb);font-size:12px"><b>Sudah ada di koleksi:</b> '+esc(own.name)+(own.price?' (dibeli '+fmt(own.price)+')':'')+'</div>';
     if(tag&&scanRes.avg){var d=Math.round((tag-scanRes.avg)/scanRes.avg*100);info+='<div style="margin-top:6px;font-size:12px"><b>Tag '+fmt(tag)+'</b> = '+(d>0?'+':'')+d+'% dari rata-rata'+(scanRes.verdict?' — '+esc(scanRes.verdict):'')+'</div>';}
     else if(scanRes.verdict){info+='<div style="margin-top:6px;font-size:12px">'+esc(scanRes.verdict)+'</div>';}
     if(scanRes.ocr)info+='<div style="margin-top:6px;font-size:11px;color:var(--t3)">Teks terbaca: '+esc(scanRes.ocr)+'</div>';
     if(scanRes.notes)info+='<div style="margin-top:6px;font-size:11px;color:var(--t3)">'+esc(scanRes.notes)+'</div>';
-    info+='<div style="margin-top:6px;font-size:10px;color:var(--t3)">Estimasi AI dari foto, bukan cek marketplace. Anggap perkiraan kasar.</div>';
+    info+='<div style="margin-top:6px;font-size:10px;color:var(--t3)">Estimasi AI dari '+(scanImgOK?'foto':'teks')+', dikalibrasi dengan harga di koleksimu; bukan cek marketplace langsung.</div>';
     document.getElementById('sc-info').innerHTML=info;
     st.style.display='none';document.getElementById('sc-res').style.display='block';
   }catch(e){
