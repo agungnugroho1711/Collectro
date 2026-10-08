@@ -1,0 +1,2048 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Collectro</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+.ti{font-family:'Material Icons';font-style:normal;font-weight:normal;display:inline-block;line-height:1;text-transform:none;letter-spacing:normal;word-wrap:normal;white-space:nowrap;direction:ltr;-webkit-font-smoothing:antialiased;}
+.ti-adjustments::before{content:'tune'}
+.ti-alert-triangle::before{content:'warning'}
+.ti-bell::before{content:'notifications'}
+.ti-box::before{content:'inventory_2'}
+.ti-box-off::before{content:'disabled_by_default'}
+.ti-building-warehouse::before{content:'warehouse'}
+.ti-camera::before{content:'photo_camera'}
+.ti-link::before{content:'link'}
+.ti-scan::before{content:'document_scanner'}
+.ti-heart-plus::before{content:'favorite'}
+.ti-info::before{content:'info'}
+.ti-group::before{content:'groups'}
+.ti-chart-bar::before{content:'bar_chart'}
+.ti-check::before{content:'check'}
+.ti-checkbox::before{content:'check_box'}
+.ti-chevron-down::before{content:'expand_more'}
+.ti-chevron-right::before{content:'chevron_right'}
+.ti-circle-check::before{content:'check_circle'}
+.ti-cloud::before{content:'cloud'}
+.ti-compass::before{content:'explore'}
+.ti-current-location::before{content:'my_location'}
+.ti-device-floppy::before{content:'save'}
+.ti-download::before{content:'download'}
+.ti-file-spreadsheet::before{content:'table_chart'}
+.ti-file-type-pdf::before{content:'picture_as_pdf'}
+.ti-heart::before{content:'favorite'}
+.ti-inbox::before{content:'inbox'}
+.ti-info-circle::before{content:'info'}
+.ti-layout-dashboard::before{content:'dashboard'}
+.ti-layout-grid::before{content:'grid_view'}
+.ti-list::before{content:'list'}
+.ti-map-pin::before{content:'location_on'}
+.ti-pencil::before{content:'edit'}
+.ti-photo::before{content:'photo_library'}
+.ti-plus::before{content:'add'}
+.ti-search::before{content:'search'}
+.ti-settings::before{content:'settings'}
+.ti-shield-check::before{content:'verified_user'}
+.ti-sparkles::before{content:'auto_awesome'}
+.ti-trash::before{content:'delete'}
+.ti-x::before{content:'close'}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html{height:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+body{min-height:100%;height:auto;}
+body{
+  background:linear-gradient(160deg,#0284c7 0%,#38bdf8 50%,#7dd3fc 100%);
+  background-attachment:fixed;
+  color:#0c1a2e;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-size:14px;
+  max-width:430px;margin:0 auto;
+  overflow-x:clip;
+  padding-bottom:90px;
+  touch-action:pan-y;
+}
+:root{
+  --bg:#e0f2fe;--s1:#f0f9ff;--s2:#e0f2fe;--s3:#bae6fd;
+  --b1:rgba(2,132,199,0.12);--b2:rgba(2,132,199,0.22);
+  --t1:#0c1a2e;--t2:#0369a1;--t3:#0284c7;
+  --ac:#0284c7;--ac2:#0369a1;--acb:rgba(2,132,199,0.15);
+  --gn:#34d399;--gnb:rgba(52,211,153,0.12);
+  --am:#fbbf24;--amb:rgba(251,191,36,0.12);
+  --rd:#f87171;--rdb:rgba(248,113,113,0.12);
+  --r:12px;--rs:8px;
+}
+
+/* ── TOPBAR ── */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 20px 12px;
+  position:sticky;top:0;
+  background:rgba(2,132,199,0.88);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  z-index:50;
+  border-bottom:.5px solid rgba(255,255,255,0.2);
+}
+.logo{font-size:18px;font-weight:800;color:#fff;letter-spacing:-.4px;text-shadow:0 1px 4px rgba(0,0,0,0.2);}
+.ib{
+  width:36px;height:36px;border-radius:var(--rs);
+  border:.5px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.2);
+  color:#fff;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:18px;
+}
+
+/* ── BOTTOM NAV ── */
+.bnav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:430px;
+  background:rgba(2,100,160,0.95);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-top:.5px solid rgba(255,255,255,0.2);
+  display:flex;
+  padding:8px 0 8px;
+  z-index:100;
+}
+.ni{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:2px;padding:10px 4px;
+  cursor:pointer;color:rgba(255,255,255,0.6);
+  font-size:9px;font-weight:500;letter-spacing:.3px;
+  border:none;background:none;
+  -webkit-appearance:none;
+}
+.ni i{font-size:21px;display:block;}
+.ni.active{color:#fff;}
+.ni-add{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:2px;padding:4px;
+  cursor:pointer;
+  font-size:9px;font-weight:500;color:rgba(255,255,255,0.6);
+  border:none;background:none;-webkit-appearance:none;
+}
+.ni-add-btn{
+  width:48px;height:48px;
+  background:linear-gradient(135deg,#fff,#e0f2fe);
+  border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 16px rgba(0,0,0,.2);
+}
+.ni-add-btn i{font-size:24px;color:#0284c7;}
+.ni-add.active .ni-add-btn{background:#fff;}
+
+/* ── PAGES ── */
+.page{display:none;}
+.page.active{display:block;}
+
+/* ── SHARED ── */
+.sbar{margin:10px 20px;position:relative;}
+.sbar input{
+  width:100%;background:var(--s2);border:.5px solid var(--b2);
+  border-radius:var(--rs);padding:10px 14px 10px 38px;
+  color:var(--t1);font-size:14px;outline:none;
+}
+.sbar input::placeholder{color:var(--t3);}
+.sbar i{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:16px;pointer-events:none;}
+.stit{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--t3);padding:0 20px;margin-bottom:8px;}
+.sec-hdr{display:flex;justify-content:space-between;align-items:center;padding:0 20px;margin-bottom:8px;}
+.see-all{font-size:12px;color:var(--ac2);cursor:pointer;}
+.tabs{display:flex;gap:6px;padding:0 20px 10px;overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;
+  white-space:nowrap;cursor:pointer;
+  border:.5px solid var(--b2);background:var(--s2);color:var(--t2);}
+.tab.active{background:var(--acb);border-color:var(--ac);color:var(--ac2);}
+.badge{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500;}
+.bpu{background:var(--acb);color:var(--ac2);}
+.bgn{background:var(--gnb);color:var(--gn);}
+.bam{background:var(--amb);color:var(--am);}
+.brd{background:var(--rdb);color:var(--rd);}
+.card{background:var(--s1);border:.5px solid var(--b2);border-radius:var(--r);}
+.fl{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;}
+.fi{
+  width:100%;background:var(--s2);border:.5px solid var(--b2);
+  border-radius:var(--rs);padding:11px 14px;
+  color:var(--t1);font-size:14px;outline:none;
+  margin-bottom:12px;display:block;
+  -webkit-appearance:none;
+}
+.fi:focus{border-color:var(--ac);}
+select.fi{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239090a8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;padding-right:36px;
+}
+select.fi option{background:var(--s2);}
+.btn-p{
+  width:100%;padding:13px;
+  background:linear-gradient(135deg,#1d4ed8 0%,#2563eb 60%,#3b82f6 100%);
+  border:none;border-radius:var(--rs);
+  color:#fff;font-size:14px;font-weight:600;cursor:pointer;
+  display:block;
+  box-shadow:0 2px 12px rgba(37,99,235,0.35);
+  transition:opacity .15s;
+}
+.btn-p:active{opacity:.85;}
+.btn-s{
+  width:100%;padding:12px;background:rgba(100,160,255,0.06);
+  border:.5px solid var(--b2);border-radius:var(--rs);
+  color:var(--t2);font-size:14px;cursor:pointer;
+  display:block;
+  transition:background .15s;
+}
+.btn-s:active{background:rgba(100,160,255,0.12);}
+
+/* ── STAT GRID ── */
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 20px;margin-bottom:16px;}
+.sc{background:var(--s1);border:.5px solid var(--b2);border-radius:var(--r);padding:14px;}
+.sc .sl{font-size:11px;color:var(--t3);margin-bottom:6px;}
+.sc .sv{font-size:22px;font-weight:700;letter-spacing:-.5px;}
+.sc .ss{font-size:11px;color:var(--t3);margin-top:3px;}
+
+/* ── ITEM CARDS ── */
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 20px;margin-bottom:16px;}
+.ic{background:var(--s1);border:.5px solid var(--b2);border-radius:var(--r);overflow:hidden;cursor:pointer;}
+.ic-img{width:100%;aspect-ratio:1;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:44px;position:relative;overflow:hidden;}
+.ic-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.ph-add{position:absolute;right:6px;bottom:6px;width:30px;height:30px;border-radius:50%;background:var(--ac);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;z-index:3;box-shadow:0 2px 6px rgba(0,0,0,.25);cursor:pointer}
+.li-th .ph-add{width:20px;height:20px;font-size:12px;right:2px;bottom:2px}
+.ph-add{position:absolute;right:6px;bottom:6px;width:30px;height:30px;border-radius:50%;background:var(--ac);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;z-index:3;box-shadow:0 2px 6px rgba(0,0,0,.25);cursor:pointer}
+.li-th .ph-add{width:20px;height:20px;font-size:12px;right:2px;bottom:2px}
+.hb{position:absolute;top:7px;right:7px;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;}
+.hbMISB{background:var(--gnb);color:var(--gn);}
+.hbMIB{background:var(--gnb);color:var(--gn);}
+.hbBIB{background:var(--amb);color:var(--am);}
+.hbLoose{background:var(--rdb);color:var(--rd);}
+.ic-info{padding:10px;}
+.ic-name{font-size:12px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ic-brand{font-size:11px;color:var(--t3);margin-bottom:5px;}
+.ic-foot{display:flex;justify-content:space-between;align-items:center;}
+.ic-val{font-size:12px;font-weight:600;color:var(--gn);}
+.ic-loc{font-size:10px;color:var(--t3);}
+
+/* ── LIST ITEMS ── */
+.llist{padding:0 20px;display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+.li{background:var(--s1);border:.5px solid var(--b2);border-radius:var(--r);padding:12px;display:flex;gap:12px;align-items:center;cursor:pointer;}
+.li-th{width:50px;height:50px;border-radius:var(--rs);background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;overflow:hidden;position:relative;}
+.li-th img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.li-info{flex:1;min-width:0;}
+.li-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
+.li-sub{font-size:11px;color:var(--t3);margin-bottom:4px;}
+.li-r{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;}
+.li-val{font-size:12px;font-weight:700;color:var(--gn);}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:48px 20px;color:var(--t3);}
+.empty i{font-size:48px;margin-bottom:12px;display:block;color:var(--s3);}
+
+/* ── MODAL ── */
+.mo{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.75);z-index:200;
+  align-items:flex-end;justify-content:center;
+}
+.mo.open{display:flex;}
+.ms{
+  background:linear-gradient(180deg,#f0f9ff 0%,#e0f2fe 100%);
+  border-radius:20px 20px 0 0;
+  border-top:.5px solid rgba(2,132,199,0.2);
+  width:100%;max-width:430px;
+  padding:0 20px calc(24px + env(safe-area-inset-bottom));
+  max-height:88vh;overflow-y:auto;
+}
+.mh{width:36px;height:4px;background:var(--b2);border-radius:2px;margin:10px auto 16px;}
+.mt{font-size:16px;font-weight:700;margin-bottom:16px;}
+.dr{display:flex;justify-content:space-between;padding:10px 0;border-bottom:.5px solid var(--b1);}
+.dr:last-of-type{border-bottom:none;}
+.dk{font-size:12px;color:var(--t3);}
+.dv{font-size:12px;font-weight:500;}
+
+/* ── UPLOAD ── */
+.uz{
+  border:1.5px dashed var(--b2);border-radius:var(--r);
+  padding:22px;text-align:center;cursor:pointer;
+  margin-bottom:10px;
+}
+.uz i{font-size:28px;color:var(--ac2);display:block;margin-bottom:6px;}
+.uz p{font-size:13px;color:var(--t2);margin-bottom:3px;}
+.uz small{font-size:11px;color:var(--t3);}
+.pstrip{display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;scrollbar-width:none;}
+.pstrip::-webkit-scrollbar{display:none;}
+.pth{width:72px;height:72px;border-radius:var(--rs);background:var(--s2);flex-shrink:0;overflow:hidden;position:relative;}
+.pth img{width:100%;height:100%;object-fit:cover;}
+.pth-del{position:absolute;top:2px;right:2px;width:18px;height:18px;background:rgba(0,0,0,.7);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;cursor:pointer;}
+
+/* ── AI SUGGEST ── */
+.ai-box{background:var(--acb);border:.5px solid var(--ac);border-radius:var(--r);padding:14px;margin-bottom:14px;}
+.ai-title{font-size:10px;color:var(--ac2);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+.ai-inp-wrap{position:relative;}
+.ai-inp-wrap input{
+  width:100%;background:var(--s1);border:.5px solid var(--b2);
+  border-radius:var(--rs);padding:10px 38px 10px 14px;
+  color:var(--t1);font-size:14px;outline:none;
+}
+.ai-inp-wrap input:focus{border-color:var(--ac);}
+.ai-spin{display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;border:2px solid var(--ac);border-top-color:transparent;border-radius:50%;}
+.ai-spin.on{display:block;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:translateY(-50%) rotate(360deg);}}
+.ai-sugg{margin-top:8px;display:flex;flex-direction:column;gap:6px;}
+.ai-item{
+  background:var(--s1);border:.5px solid var(--b2);border-radius:var(--rs);
+  padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:10px;
+}
+.ai-item-ico{font-size:22px;flex-shrink:0;}
+.ai-item-info{flex:1;min-width:0;}
+.ai-item-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ai-item-sub{font-size:11px;color:var(--t3);}
+.ai-item-price{font-size:12px;font-weight:700;color:var(--gn);flex-shrink:0;}
+
+/* ── STORAGE ── */
+.snode{background:var(--s1);border:.5px solid var(--b2);border-radius:var(--r);margin-bottom:8px;overflow:hidden;}
+.snh{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer;}
+.sn-ico{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.sn-info{flex:1;min-width:0;}
+.sn-name{font-size:13px;font-weight:600;margin-bottom:1px;}
+.sn-sub{font-size:11px;color:var(--t3);}
+.sn-r{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.sn-cnt{background:var(--s3);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;color:var(--t2);}
+.sn-ch{font-size:15px;color:var(--t3);transition:transform .2s;}
+.snode.exp .sn-ch{transform:rotate(90deg);}
+.sn-children{display:none;border-top:.5px solid var(--b1);padding:8px 12px 10px;}
+.snode.exp .sn-children{display:flex;flex-direction:column;gap:6px;}
+.sch{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--s2);border-radius:8px;cursor:pointer;}
+.sch-ico{font-size:15px;flex-shrink:0;}
+.sch-info{flex:1;min-width:0;}
+.sch-name{font-size:12px;font-weight:600;margin-bottom:1px;}
+.sch-sub{font-size:10px;color:var(--t3);}
+.prog{height:3px;background:var(--s3);border-radius:2px;margin-top:3px;}
+.prog-f{height:100%;border-radius:2px;background:var(--ac);}
+.bc{display:flex;align-items:center;gap:4px;padding:6px 20px;flex-wrap:wrap;margin-bottom:4px;}
+.bc-i{font-size:12px;color:var(--t3);cursor:pointer;}
+.bc-i.active{color:var(--t1);font-weight:600;}
+.bc-sep{font-size:12px;color:var(--t3);}
+
+/* ── HEALTH ── */
+.hgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 20px;margin-bottom:16px;}
+.hci{background:var(--s1);border:.5px solid var(--b2);border-radius:var(--rs);padding:10px 8px;text-align:center;}
+.hci-ico{font-size:20px;margin-bottom:3px;}
+.hci-val{font-size:16px;font-weight:700;margin:2px 0;}
+.hci-lbl{font-size:10px;color:var(--t3);}
+.hci.ok .hci-val{color:var(--gn);}
+.hci.warn .hci-val{color:var(--am);}
+.hci.bad .hci-val{color:var(--rd);}
+
+/* ── EVENT CARDS ── */
+.evcard{background:var(--s1);border:.5px solid var(--b2);border-radius:var(--r);margin-bottom:10px;overflow:hidden;cursor:pointer;}
+
+/* ── MISC ── */
+.sync-dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+.sync-dot.ok{background:var(--gn);}
+.sync-dot.sync{background:var(--am);}
+.sync-dot.err{background:var(--rd);}
+#toast{
+  position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));
+  left:50%;transform:translateX(-50%) translateY(16px);
+  background:var(--s3);border:.5px solid var(--b2);border-radius:var(--rs);
+  padding:10px 20px;font-size:13px;font-weight:500;
+  opacity:0;transition:all .3s;z-index:300;
+  white-space:nowrap;max-width:90%;pointer-events:none;
+}
+.prow{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.sset-row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--s1);border:.5px solid var(--b2);border-radius:var(--rs);margin-bottom:8px;cursor:pointer;}
+.sset-ico{width:36px;height:36px;border-radius:8px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.sset-info{flex:1;min-width:0;}
+.sset-name{font-size:13px;font-weight:600;}
+.sset-sub{font-size:11px;color:var(--t3);}
+.mi{display:flex;align-items:center;gap:12px;padding:13px 14px;background:var(--s1);border:.5px solid var(--b1);border-radius:var(--rs);cursor:pointer;margin-bottom:4px;}
+.mi i{font-size:18px;color:var(--t2);}
+.mi span{flex:1;font-size:13px;}
+.mi .arr{font-size:16px;color:var(--t3);}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <span class="logo"><i class="ti ti-box" style="font-size:16px;vertical-align:-1px;margin-right:5px;color:#3b82f6"></i>Collectro</span>
+  <div style="display:flex;gap:8px">
+    <div class="ib" id="sync-btn"><span class="sync-dot ok" id="sdot"></span>&nbsp;<i class="ti ti-cloud" style="font-size:16px"></i></div>
+    <div class="ib" onclick="openM('notif-m')"><i class="ti ti-bell"></i></div>
+  </div>
+</div>
+
+<!-- PAGE: DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="sbar"><i class="ti ti-search"></i><input type="text" placeholder="Cari koleksi..." oninput="quickSearch(this.value,this)"></div>
+  <div style="margin:10px 20px 0;background:var(--acb);border:.5px solid var(--ac);border-radius:var(--rs);padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="openScan()">
+    <i class="ti ti-scan" style="font-size:24px;color:var(--ac2)"></i>
+    <div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--ac2)">Scan barang</div><div style="font-size:11px;color:var(--t3)">Foto → info &amp; estimasi harga → Koleksi / Wishlist</div></div>
+    <i class="ti ti-chevron-right" style="color:var(--t3)"></i>
+  </div>
+  <div class="sg" id="dash-stats">
+    <div class="sc"><div class="sl">Total koleksi</div><div class="sv" style="color:var(--ac2)" id="st-total">—</div><div class="ss">item</div></div>
+    <div class="sc"><div class="sl">Nilai koleksi</div><div class="sv" style="color:var(--gn)" id="st-val">—</div><div class="ss">est. pasar</div></div>
+    <div class="sc"><div class="sl">Modal beli</div><div class="sv" style="color:var(--am)" id="st-cost">—</div><div class="ss">investasi</div></div>
+    <div class="sc"><div class="sl">ROI</div><div class="sv" style="color:var(--gn)" id="st-roi">—</div><div class="ss">gain/loss</div></div>
+  </div>
+  <div class="sec-hdr">
+    <span class="stit" style="padding:0;margin:0">Terbaru</span>
+    <span class="see-all" onclick="switchTab('collection')">Lihat semua</span>
+  </div>
+  <div class="cgrid" id="dash-recent">
+    <div class="empty" style="grid-column:span 2;padding:24px"><i class="ti ti-box" style="font-size:32px"></i><p style="font-size:12px">Belum ada koleksi</p></div>
+  </div>
+</div>
+
+<!-- PAGE: COLLECTION -->
+<div class="page" id="page-collection">
+  <div style="display:flex;align-items:center;gap:8px;padding:10px 20px 6px">
+    <div class="sbar" style="margin:0;flex:1"><i class="ti ti-search"></i><input type="text" placeholder="Cari..." id="col-q" oninput="renderCollection()"></div>
+    <div class="ib" id="vt-g" onclick="setView('g')"><i class="ti ti-layout-grid"></i></div>
+    <div class="ib" id="vt-l" onclick="setView('l')"><i class="ti ti-list"></i></div>
+    <div class="ib" onclick="openScan()" title="Scan barang"><i class="ti ti-scan"></i></div>
+    <div class="ib" onclick="openValAll()" title="Nilai AI semua koleksi"><i class="ti ti-sparkles"></i></div>
+    <div class="ib" onclick="renderManageList();openM('manage-m')" title="Kelola koleksi"><i class="ti ti-adjustments"></i></div>
+  </div>
+  <div class="tabs" id="cat-tabs">
+    <div class="tab active" onclick="setCat(this,'')">Semua</div>
+    <div class="tab" onclick="setCat(this,'Figure')">Figure</div>
+    <div class="tab" onclick="setCat(this,'Gunpla')">Gunpla</div>
+    <div class="tab" onclick="setCat(this,'Diecast')">Diecast</div>
+    <div class="tab" onclick="setCat(this,'TCG')">TCG</div>
+    <div class="tab" onclick="setCat(this,'LEGO')">LEGO</div>
+    <div class="tab" onclick="setCat(this,'Statue')">Statue</div>
+  </div>
+  <div id="col-g" class="cgrid"></div>
+  <div id="col-l" class="llist" style="display:none"></div>
+  <div id="col-empty" class="empty" style="display:none"><i class="ti ti-box-off"></i><p>Belum ada item di kategori ini</p></div>
+</div>
+
+<!-- PAGE: ADD -->
+<div class="page" id="page-add">
+  <div style="padding:14px 20px 10px">
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:2px">Tambah koleksi</h2>
+    <p style="font-size:12px;color:var(--t3)">Ketik nama untuk saran AI, atau isi manual</p>
+    <div id="login-warn" style="display:none;background:var(--rdb);border:.5px solid var(--rd);border-radius:var(--rs);padding:8px 12px;margin-top:8px;font-size:12px;color:var(--rd)"></div>
+  </div>
+  <div style="padding:0 20px">
+    <!-- AI SUGGEST -->
+    <div class="ai-box">
+      <div class="ai-title"><i class="ti ti-sparkles" style="vertical-align:-1px;margin-right:3px"></i>AI Autocomplete</div>
+      <div class="ai-inp-wrap">
+        <input type="text" id="ai-q" placeholder="Ketik nama item... (min. 3 huruf)" oninput="onAIInput(this.value)">
+        <div class="ai-spin" id="ai-spin"></div>
+      </div>
+      <div class="ai-sugg" id="ai-sugg"></div>
+    </div>
+
+    <!-- FOTO -->
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:11px;color:var(--t3)">Foto (opsional — thumbnail)</span>
+        <div class="ib" style="width:28px;height:28px;font-size:14px" onclick="openM('photo-m')"><i class="ti ti-camera"></i></div>
+      </div>
+      <div class="pstrip" id="pstrip"></div>
+    </div>
+
+    <div class="fl">Nama item *</div>
+    <input class="fi" type="text" id="f-name" placeholder="cth. Rem 1/7 Scale Figure">
+
+    <div class="prow">
+      <div><div class="fl">Brand</div><input class="fi" type="text" id="f-brand" placeholder="cth. FuRyu"></div>
+      <div><div class="fl">Kategori</div>
+        <select class="fi" id="f-cat">
+          <option value="Figure">Figure</option><option value="Gunpla">Gunpla</option>
+          <option value="Diecast">Diecast</option><option value="TCG">TCG</option>
+          <option value="LEGO">LEGO</option><option value="Statue">Statue</option>
+          <option value="Lainnya">Lainnya</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="fl">Series / karakter</div>
+    <input class="fi" type="text" id="f-series" placeholder="cth. Re:Zero — Rem">
+
+    <div class="prow">
+      <div><div class="fl">Scale</div><input class="fi" type="text" id="f-scale" placeholder="cth. 1/7"></div>
+      <div><div class="fl">Kondisi</div>
+        <select class="fi" id="f-health">
+          <option value="MISB">MISB — Mint in Sealed Box</option>
+          <option value="MIB">MIB — Mint in Box</option>
+          <option value="BIB">BIB — Built in Box</option>
+          <option value="Loose">Loose — Tanpa Box</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="prow">
+      <div><div class="fl">Harga beli (Rp)</div><input class="fi" type="number" id="f-price" placeholder="1200000"></div>
+      <div><div class="fl">Tanggal beli</div><input class="fi" type="date" id="f-date"></div>
+    </div>
+
+    <div class="fl">Lokasi storage</div>
+    <select class="fi" id="f-stor"><option value="">— pilih lokasi —</option></select>
+
+    <div class="fl">Status</div>
+    <select class="fi" id="f-status">
+      <option value="On Display">On Display</option>
+      <option value="In Storage">In Storage</option>
+      <option value="For Sale">For Sale</option>
+    </select>
+
+    <div class="fl">Catatan</div>
+    <textarea class="fi" id="f-notes" rows="3" placeholder="Catatan..." style="resize:none"></textarea>
+
+    <div id="save-err" style="color:var(--rd);font-size:12px;margin-bottom:8px;display:none"></div>
+    <button class="btn-p" onclick="saveItem()" style="margin-bottom:8px"><i class="ti ti-device-floppy" style="vertical-align:-2px;margin-right:4px"></i>Simpan koleksi</button>
+    <div style="height:80px"></div>
+  </div>
+</div>
+
+<!-- PAGE: STORAGE -->
+<div class="page" id="page-storage">
+  <div style="padding:14px 20px 8px;display:flex;justify-content:space-between;align-items:center">
+    <div><h2 style="font-size:18px;font-weight:700;margin-bottom:1px">Storage</h2><p style="font-size:12px;color:var(--t3)" id="stor-sub">Kelola lokasi koleksi</p></div>
+    <div style="display:flex;gap:6px">
+      <div class="ib" onclick="openM('addloc-m')"><i class="ti ti-plus"></i></div>
+      <div class="ib" onclick="openM('storsett-m')"><i class="ti ti-settings"></i></div>
+    </div>
+  </div>
+  <div class="bc" id="stor-bc"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 20px;margin-bottom:14px" id="stor-sum"></div>
+  <div id="stor-home-view" style="padding:0 20px">
+    <div id="stor-tree"></div>
+  </div>
+  <div id="stor-shelf-view" style="display:none">
+    <div class="stit" id="shelf-title" style="margin-bottom:8px"></div>
+    <div class="llist" id="shelf-items"></div>
+  </div>
+</div>
+
+<!-- PAGE: DISCOVER -->
+<div class="page" id="page-discover">
+  <div style="padding:14px 20px 0"><h2 style="font-size:18px;font-weight:700;margin-bottom:10px">Discover</h2></div>
+  <div class="tabs">
+    <div class="tab active" onclick="switchDisc(this,'health')">💓 Health</div>
+    <div class="tab" onclick="switchDisc(this,'wishlist')">❤️ Wishlist</div>
+    <div class="tab" onclick="switchDisc(this,'events')">📅 Events</div>
+    <div class="tab" onclick="switchDisc(this,'export')">📤 Export</div>
+  </div>
+
+  <!-- HEALTH -->
+  <div id="disc-health">
+    <div style="margin:0 20px 14px;background:rgba(52,211,153,.1);border:.5px solid rgba(52,211,153,.3);border-radius:var(--r);padding:14px;display:flex;align-items:center;gap:14px">
+      <div style="width:56px;height:56px;border-radius:50%;border:3px solid var(--gn);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <div style="text-align:center"><div style="font-size:18px;font-weight:800;color:var(--gn)" id="hscore">—</div><div style="font-size:8px;color:var(--t3)">/100</div></div>
+      </div>
+      <div style="flex:1"><div style="font-size:14px;font-weight:700;margin-bottom:3px">Health Score</div><div style="font-size:11px;color:var(--t3);margin-bottom:6px" id="hsub">Menghitung...</div><div style="height:4px;background:var(--s3);border-radius:2px"><div style="height:100%;border-radius:2px;background:var(--gn);transition:width .5s" id="hbar" style="width:0%"></div></div></div>
+    </div>
+    <div class="hgrid" id="hgrid"></div>
+    <div class="stit">Perlu perhatian</div>
+    <div class="llist" id="h-issues"></div>
+  </div>
+
+  <!-- WISHLIST -->
+  <div id="disc-wishlist" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:0 20px;margin-bottom:10px">
+      <span style="font-size:12px;color:var(--t3)" id="wish-total">0 item</span>
+      <div class="ib" style="width:28px;height:28px;font-size:14px" onclick="openM('addwish-m')"><i class="ti ti-plus"></i></div>
+    </div>
+    <div class="llist" id="wish-list"></div>
+  </div>
+
+  <!-- EVENTS -->
+  <div id="disc-events" style="display:none">
+    <div style="margin:0 20px 10px;background:var(--acb);border:.5px solid var(--ac);border-radius:var(--rs);padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="openScan()">
+      <i class="ti ti-scan" style="font-size:24px;color:var(--ac2)"></i>
+      <div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--ac2)">Scan barang di event</div><div style="font-size:11px;color:var(--t3)">Foto barang → info &amp; estimasi harga → simpan ke Koleksi / Wishlist</div></div>
+      <i class="ti ti-chevron-right" style="color:var(--t3)"></i>
+    </div>
+    <div style="margin:0 20px 10px;background:var(--s1);border:.5px solid var(--b2);border-radius:var(--rs);padding:10px 14px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="openM('locpick-m')">
+      <i class="ti ti-map-pin" style="font-size:18px;color:var(--ac2)"></i>
+      <div style="flex:1"><div style="font-size:11px;color:var(--t3)">Lokasi</div><div style="font-size:13px;font-weight:600" id="ev-loc">📍 Jakarta &amp; sekitarnya</div></div>
+      <i class="ti ti-chevron-down" style="color:var(--t3)"></i>
+    </div>
+    <div class="tabs" id="rad-tabs">
+      <div class="tab active" onclick="setRad(this,30)">≤ 30 km</div>
+      <div class="tab" onclick="setRad(this,60)">≤ 60 km</div>
+      <div class="tab" onclick="setRad(this,150)">≤ 150 km</div>
+      <div class="tab" onclick="setRad(this,9999)">🇮🇩 Nasional</div>
+    </div>
+    <div style="padding:0 20px;font-size:12px;color:var(--t3);margin-bottom:8px" id="ev-count"></div>
+    <div style="padding:0 20px;margin-bottom:20px" id="ev-list"></div>
+  </div>
+
+  <!-- EXPORT -->
+  <div id="disc-export" style="display:none;padding:0 20px">
+    <div class="card" style="margin-bottom:12px;overflow:hidden">
+      <div style="padding:14px;border-bottom:.5px solid var(--b1)"><div style="font-size:13px;font-weight:700;margin-bottom:2px">Export PDF</div><div style="font-size:11px;color:var(--t3)">Laporan koleksi lengkap</div></div>
+      <div style="padding:14px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:8px;cursor:pointer"><input type="checkbox" checked id="ep-detail" style="accent-color:var(--ac)">Detail koleksi</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:8px;cursor:pointer"><input type="checkbox" checked id="ep-val" style="accent-color:var(--ac)">Nilai &amp; ROI</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:14px;cursor:pointer"><input type="checkbox" id="ep-health" style="accent-color:var(--ac)">Status health</label>
+        <button class="btn-p" onclick="doExport('pdf')"><i class="ti ti-file-type-pdf" style="vertical-align:-2px;margin-right:4px"></i>Download PDF</button>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:12px;overflow:hidden">
+      <div style="padding:14px;border-bottom:.5px solid var(--b1)"><div style="font-size:13px;font-weight:700;margin-bottom:2px">Import Excel / CSV</div><div style="font-size:11px;color:var(--t3)">Masukkan banyak item sekaligus. Duplikat (nama + brand) dilewati.</div></div>
+      <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
+        <button class="btn-s" onclick="downloadTemplate()"><i class="ti ti-download" style="vertical-align:-2px;margin-right:4px"></i>Download template Excel</button>
+        <button class="btn-p" onclick="document.getElementById('fi-imp').click()"><i class="ti ti-file-spreadsheet" style="vertical-align:-2px;margin-right:4px"></i>Pilih file untuk import</button>
+        <input type="file" id="fi-imp" accept=".xlsx,.xls,.csv" style="display:none" onchange="importFile(this)">
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:20px;overflow:hidden">
+      <div style="padding:14px;border-bottom:.5px solid var(--b1)"><div style="font-size:13px;font-weight:700;margin-bottom:2px">Export Excel / CSV</div><div style="font-size:11px;color:var(--t3)">Kolom sama dengan template, jadi bisa diolah lalu di-import ulang</div></div>
+      <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
+        <button class="btn-p" style="background:linear-gradient(135deg,#059669,#34d399)" onclick="doExport('xlsx')"><i class="ti ti-file-spreadsheet" style="vertical-align:-2px;margin-right:4px"></i>Download Excel (.xlsx)</button>
+        <button class="btn-s" onclick="doExport('csv')"><i class="ti ti-download" style="vertical-align:-2px;margin-right:4px"></i>Download CSV</button>
+      </div>
+    </div>
+    <div class="mi" id="uid-row" style="display:none;margin-bottom:20px" onclick="copyUid()"><i class="ti ti-info"></i><span style="min-width:0"><span style="display:block;font-size:11px;color:var(--t3)">ID akun (tap untuk salin)</span><span id="uid-val" style="display:block;font-size:12px;font-family:monospace;word-break:break-all"></span></span><i class="ti ti-checkbox arr"></i></div>
+  </div>
+</div>
+
+<!-- PAGE: PROFILE -->
+<div class="page" id="page-profile">
+  <div style="display:flex;flex-direction:column;align-items:center;padding:24px 20px 16px;gap:8px">
+    <div style="width:68px;height:68px;border-radius:50%;background:var(--acb);border:2px solid var(--ac);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:var(--ac2)" id="pav">?</div>
+    <div style="font-size:18px;font-weight:700" id="pname">Kolektor</div>
+  </div>
+  <div style="display:flex;gap:20px;justify-content:center;margin-bottom:20px">
+    <div style="text-align:center"><div style="font-size:20px;font-weight:700;color:var(--ac2)" id="pp-total">—</div><div style="font-size:10px;color:var(--t3)">Koleksi</div></div>
+    <div style="text-align:center"><div style="font-size:20px;font-weight:700;color:var(--gn)" id="pp-val">—</div><div style="font-size:10px;color:var(--t3)">Nilai</div></div>
+    <div style="text-align:center"><div style="font-size:20px;font-weight:700;color:var(--am)" id="pp-roi">—</div><div style="font-size:10px;color:var(--t3)">ROI</div></div>
+  </div>
+  <div style="padding:0 20px">
+    <div class="mi" onclick="switchTab('storage')"><i class="ti ti-building-warehouse"></i><span>Storage Management</span><i class="ti ti-chevron-right arr"></i></div>
+    <div class="mi" onclick="switchTab('storage');setTimeout(()=>openM('storsett-m'),50)"><i class="ti ti-settings"></i><span>Pengaturan Storage</span><i class="ti ti-chevron-right arr"></i></div>
+    <div class="mi" onclick="switchDisc(null,'wishlist');switchTab('discover')"><i class="ti ti-heart"></i><span>Wishlist</span><i class="ti ti-chevron-right arr"></i></div>
+    <div class="mi" onclick="switchDisc(null,'export');switchTab('discover')"><i class="ti ti-download"></i><span>Export Data</span><i class="ti ti-chevron-right arr"></i></div>
+    <div class="mi" onclick="openM('about-m')"><i class="ti ti-info-circle"></i><span>Tentang Collectro</span><i class="ti ti-chevron-right arr"></i></div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bnav">
+  <button class="ni active" id="nav-dashboard" onclick="switchTab('dashboard')"><i class="ti ti-layout-dashboard"></i>Dashboard</button>
+  <button class="ni" id="nav-collection" onclick="switchTab('collection')"><i class="ti ti-box"></i>Koleksi</button>
+  <button class="ni-add" id="nav-add" onclick="switchTab('add')">
+    <div class="ni-add-btn"><i class="ti ti-plus"></i></div>
+    <span>Tambah</span>
+  </button>
+  <button class="ni" id="nav-storage" onclick="switchTab('storage')"><i class="ti ti-building-warehouse"></i>Storage</button>
+  <button class="ni" id="nav-discover" onclick="switchTab('discover')"><i class="ti ti-compass"></i>Discover</button>
+</nav>
+
+<!-- ── MODALS ── -->
+
+<!-- MANAGE MODAL -->
+<div class="mo" id="manage-m" onclick="if(event.target===this)closeM('manage-m')">
+  <div class="ms">
+    <div class="mh"></div>
+    <div class="mt">Kelola Koleksi</div>
+    <div id="manage-list" style="display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow-y:auto;margin-bottom:14px"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-s" style="flex:1" onclick="selectAllManage()"><i class="ti ti-checkbox" style="vertical-align:-2px;margin-right:4px"></i>Pilih Semua</button>
+      <button class="btn-s" style="flex:1;color:var(--rd);border-color:var(--rd)" onclick="deleteSelected()"><i class="ti ti-trash" style="vertical-align:-2px;margin-right:4px"></i>Hapus Dipilih</button>
+    </div>
+  </div>
+</div>
+
+<div class="mo" id="detail-m" onclick="if(event.target===this)closeM('detail-m')">
+  <div class="ms" id="detail-sheet"></div>
+</div>
+
+<div class="mo" id="photo-m" onclick="if(event.target===this)closeM('photo-m')">
+  <div class="ms">
+    <div class="mh"></div>
+    <div class="mt">Pilih sumber foto</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:center;gap:14px;padding:14px;background:var(--s2);border-radius:var(--rs);cursor:pointer" onclick="closeM('photo-m');document.getElementById('fi-gal').click()">
+        <div style="width:40px;height:40px;border-radius:10px;background:var(--acb);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-photo" style="font-size:20px;color:var(--ac2)"></i></div>
+        <div><div style="font-size:14px;font-weight:600">Galeri</div><div style="font-size:11px;color:var(--t3)">Pilih dari foto di device kamu</div></div>
+        <i class="ti ti-chevron-right" style="margin-left:auto;color:var(--t3)"></i>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;padding:14px;background:var(--s2);border-radius:var(--rs);cursor:pointer" onclick="closeM('photo-m');document.getElementById('fi-cam').click()">
+        <div style="width:40px;height:40px;border-radius:10px;background:var(--gnb);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-camera" style="font-size:20px;color:var(--gn)"></i></div>
+        <div><div style="font-size:14px;font-weight:600">Kamera</div><div style="font-size:11px;color:var(--t3)">Foto langsung sekarang</div></div>
+        <i class="ti ti-chevron-right" style="margin-left:auto;color:var(--t3)"></i>
+      </div>
+    </div>
+    <button class="btn-s" style="margin-top:12px" onclick="closeM('photo-m')"><i class="ti ti-x" style="vertical-align:-2px;margin-right:4px"></i>Batal</button>
+  </div>
+</div>
+<div class="mo" id="photo-it-m" onclick="if(event.target===this)closeM('photo-it-m')">
+  <div class="ms">
+    <div class="mh"></div>
+    <div class="mt">Foto koleksi</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div id="pi-gal" style="display:flex;align-items:center;gap:14px;padding:14px;background:var(--s2);border-radius:var(--rs);cursor:pointer"><i class="ti ti-photo" style="font-size:22px;color:var(--ac2)"></i><div style="font-size:14px;font-weight:600">Galeri</div></div>
+      <div id="pi-cam" style="display:flex;align-items:center;gap:14px;padding:14px;background:var(--s2);border-radius:var(--rs);cursor:pointer"><i class="ti ti-camera" style="font-size:22px;color:var(--gn)"></i><div style="font-size:14px;font-weight:600">Kamera</div></div>
+    </div>
+    <button class="btn-s" style="margin-top:12px" onclick="closeM('photo-it-m')">Batal</button>
+  </div>
+</div>
+<input type="file" id="fi-it-gal" accept="image/*" style="display:none">
+<input type="file" id="fi-it-cam" accept="image/*" capture="environment" style="display:none">
+<input type="file" id="fi-gal" accept="image/*" multiple style="display:none" onchange="handleFiles(this.files)">
+<input type="file" id="fi-cam" accept="image/*" capture="environment" style="display:none" onchange="handleFiles(this.files)">
+
+<div class="mo" id="storsett-m" onclick="if(event.target===this)closeM('storsett-m')">
+  <div class="ms">
+    <div class="mh"></div>
+    <div class="mt">Pengaturan Storage</div>
+    <div id="sset-list"></div>
+    <button class="btn-p" onclick="openM('addloc-m');closeM('storsett-m')"><i class="ti ti-plus" style="vertical-align:-2px;margin-right:4px"></i>Tambah lokasi</button>
+  </div>
+</div>
+
+<div class="mo" id="addloc-m" onclick="if(event.target===this)closeM('addloc-m')">
+  <div class="ms">
+    <div class="mh"></div>
+    <div class="mt">Tambah lokasi</div>
+    <div class="fl">Tipe</div>
+    <select class="fi" id="loc-type">
+      <option value="floor">🏢 Lantai</option><option value="room">🚪 Ruangan</option>
+      <option value="rack" selected>🗄️ Rak</option><option value="shelf">📌 Shelf</option>
+      <option value="box">📦 Box</option>
+    </select>
+    <div class="fl">Nama</div>
+    <input class="fi" type="text" id="loc-name" placeholder="cth. Rak A — Display Utama">
+    <div class="fl">Kapasitas (posisi)</div>
+    <input class="fi" type="number" id="loc-cap" placeholder="6" value="6">
+    <div class="fl">Parent (opsional)</div>
+    <select class="fi" id="loc-parent"><option value="">— tidak ada —</option></select>
+    <button class="btn-p" onclick="saveLoc()"><i class="ti ti-device-floppy" style="vertical-align:-2px;margin-right:4px"></i>Simpan</button>
+  </div>
+</div>
+
+<div class="mo" id="edit-item-m" onclick="if(event.target===this)closeM('edit-item-m')">
+  <div class="ms">
+    <div class="mh"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="mt" style="margin:0">Edit koleksi</div>
+      <button class="btn-p" style="width:auto;padding:8px 16px;font-size:13px" onclick="saveEditItem()"><i class="ti ti-check" style="vertical-align:-2px;margin-right:4px"></i>Simpan</button>
+    </div>
+    <input type="hidden" id="ei-id">
+    <div class="fl">Nama item</div>
+    <input class="fi" type="text" id="ei-name" placeholder="cth. Rem 1/4 Wedding Ver.">
+    <div class="prow">
+      <div><div class="fl">Brand</div><input class="fi" type="text" id="ei-brand" placeholder="Good Smile Co."></div>
+      <div><div class="fl">Scale</div><input class="fi" type="text" id="ei-scale" placeholder="1/7"></div>
+    </div>
+    <div class="prow">
+      <div><div class="fl">Kategori</div>
+        <select class="fi" id="ei-cat">
+          <option>Figure</option><option>Gunpla</option><option>Diecast</option>
+          <option>TCG</option><option>LEGO</option><option>Statue</option>
+        </select>
+      </div>
+      <div><div class="fl">Kondisi</div>
+        <select class="fi" id="ei-health">
+          <option value="MISB">MISB</option><option value="MIB">MIB</option>
+          <option value="BIB">BIB</option><option value="Loose">Loose</option>
+        </select>
+      </div>
+    </div>
+    <div class="fl">Series</div>
+    <input class="fi" type="text" id="ei-series" placeholder="cth. Sword Art Online">
+    <div class="prow">
+      <div><div class="fl">Harga beli (Rp)</div><input class="fi" type="number" id="ei-price" placeholder="850000"></div>
+      <div><div class="fl">Tanggal beli</div><input class="fi" type="date" id="ei-date"></div>
+    </div>
+    <div class="fl">Lokasi penyimpanan</div>
+    <select class="fi" id="ei-stor"><option value="">— pilih lokasi —</option></select>
+    <div class="fl">Status display</div>
+    <select class="fi" id="ei-status">
+      <option value="">— pilih status —</option>
+      <option>On Display</option><option>In Storage</option><option>On Loan</option>
+    </select>
+    <div class="fl">Catatan</div>
+    <textarea class="fi" id="ei-notes" rows="2" style="resize:vertical" placeholder="Catatan tambahan..."></textarea>
+  </div>
+</div>
+
+<div class="mo" id="editloc-m" onclick="if(event.target===this)closeM('editloc-m')">
+  <div class="ms">
+    <div class="mh"></div>
+    <div class="mt">Edit lokasi</div>
+    <input type="hidden" id="el-id">
+    <div class="fl">Nama</div>
+    <input class="fi" type="text" id="el-name">
+    <div class="fl">Kapasitas</div>
+    <input class="fi" type="number" id="el-cap">
+    <div style="display:flex;gap:8px">
+      <button class="btn-s" style="flex:1;color:var(--rd);border-color:var(--rd)" onclick="delLoc()"><i class="ti ti-trash" style="vertical-align:-2px"></i> Hapus</button>
+      <button class="btn-p" style="flex:1" onclick="updateLoc()"><i class="ti ti-check" style="vertical-align:-2px"></i> Simpan</button>
+    </div>
+  </div>
+</div>
+
+<div class="mo" id="addwish-m" onclick="if(event.target===this)closeM('addwish-m')">
+  <div class="ms">
+    <div class="mh"></div>
+    <div class="mt">Tambah ke Wishlist</div>
+    <div class="fl">Nama item</div><input class="fi" type="text" id="w-name" placeholder="cth. Rem 1/4 Wedding Ver.">
+    <div class="prow">
+      <div><div class="fl">Brand</div><input class="fi" type="text" id="w-brand"></div>
+      <div><div class="fl">Kategori</div><select class="fi" id="w-cat"><option>Figure</option><option>Gunpla</option><option>Diecast</option><option>TCG</option><option>LEGO</option><option>Statue</option></select></div>
+    </div>
+    <div class="fl">Estimasi harga (Rp)</div><input class="fi" type="number" id="w-price">
+    <div class="fl">Status</div>
+    <select class="fi" id="w-status"><option>Preorder</option><option>Available</option><option>Secondhand</option><option>Closed PO</option></select>
+    <button class="btn-p" onclick="saveWish()" style="background:linear-gradient(135deg,#7c3aed,#a855f7)"><i class="ti ti-heart" style="vertical-align:-2px;margin-right:4px"></i>Simpan ke Wishlist</button>
+  </div>
+</div>
+
+<div class="mo" id="locpick-m" onclick="if(event.target===this)closeM('locpick-m')">
+  <div class="ms">
+    <div class="mh"></div>
+    <div class="mt">Pilih Lokasi</div>
+    <div style="position:relative;margin-bottom:12px"><i class="ti ti-search" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--t3)"></i><input class="fi" type="text" placeholder="Cari kota..." style="padding-left:36px;margin:0" oninput="filterCities(this.value)"></div>
+    <div style="background:var(--acb);border:.5px solid var(--ac);border-radius:var(--rs);padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="useGPS()">
+      <i class="ti ti-current-location" style="font-size:20px;color:var(--ac2)"></i>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--ac2)">Gunakan GPS</div><div style="font-size:11px;color:var(--t3)">Deteksi otomatis</div></div>
+    </div>
+    <div id="city-list" style="display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto"></div>
+  </div>
+</div>
+
+<div class="mo" id="notif-m" onclick="if(event.target===this)closeM('notif-m')">
+  <div class="ms">
+    <div class="mh"></div>
+    <div class="mt">Notifikasi</div>
+    <div id="notif-list"></div>
+  </div>
+</div>
+
+<div class="mo" id="import-m" onclick="if(event.target===this)closeM('import-m')">
+  <div class="ms">
+    <div class="mh"></div>
+    <div class="mt">Preview import</div>
+    <div id="imp-sum" style="font-size:13px;margin-bottom:10px"></div>
+    <div id="imp-issues" style="font-size:11px;color:var(--t3);max-height:34vh;overflow-y:auto;margin-bottom:14px"></div>
+    <div style="display:flex;gap:8px"><button class="btn-s" style="flex:1" onclick="closeM('import-m')">Batal</button><button class="btn-p" id="imp-go" style="flex:1" onclick="runImport()">Import</button></div>
+  </div>
+</div>
+
+<div class="mo" id="scan-m" onclick="if(event.target===this&&!scanBusy)closeM('scan-m')">
+  <div class="ms" style="max-height:92vh;overflow-y:auto">
+    <div class="mh"></div>
+    <div class="mt"><i class="ti ti-scan" style="vertical-align:-3px;margin-right:6px"></i>Scan barang</div>
+    <div id="sc-pick">
+      <div style="font-size:12px;color:var(--t3);margin-bottom:12px">Foto barang yang kamu taksir (kotak/kemasan terlihat jelas lebih akurat). Opsional: isi harga di tag toko untuk dibandingkan dengan estimasi pasar.</div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="btn-p" id="sc-cam" style="flex:1"><i class="ti ti-camera" style="vertical-align:-2px;margin-right:4px"></i>Kamera</button>
+        <button class="btn-s" id="sc-gal" style="flex:1"><i class="ti ti-photo" style="vertical-align:-2px;margin-right:4px"></i>Galeri</button>
+      </div>
+      <div id="sc-note" style="display:none;font-size:11px;color:var(--am);background:var(--amb);padding:8px 10px;border-radius:var(--rs);margin-bottom:10px">Perangkat/app ini belum bisa mengirim foto ke AI. Foto tetap bisa disimpan; isi nama atau petunjuk barang di bawah, lalu tap Analisis. Estimasi dibuat dari teks.</div>
+      <div class="fl">Harga di tag / ditawarkan (Rp, opsional)</div>
+      <input class="fi" type="number" id="sc-tag" inputmode="numeric" placeholder="cth. 1200000">
+      <div class="fl" style="margin-top:10px">Petunjuk (opsional)</div>
+      <input class="fi" type="text" id="sc-hint" placeholder="cth. One Piece Figuarts Zero, bekas, tanpa box">
+      <button class="btn-p" id="sc-go" style="display:none;width:100%;margin-top:12px">Analisis</button>
+    </div>
+    <div id="sc-prev" style="display:none;margin:10px 0"><img id="sc-img" alt="" style="width:100%;max-height:34vh;object-fit:contain;border-radius:var(--rs);background:var(--s2)"></div>
+    <div id="sc-status" style="display:none;font-size:13px;color:var(--t3);text-align:center;padding:14px 0">Menganalisis…</div>
+    <div id="sc-res" style="display:none">
+      <div class="fl">Nama</div><input class="fi" type="text" id="sc-name">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+        <div><div class="fl">Brand</div><input class="fi" type="text" id="sc-brand"></div>
+        <div><div class="fl">Seri</div><input class="fi" type="text" id="sc-series"></div>
+        <div><div class="fl">Kategori</div><select class="fi" id="sc-cat"><option>Figure</option><option>Gunpla</option><option>Diecast</option><option>TCG</option><option>LEGO</option><option>Statue</option><option>Lainnya</option></select></div>
+        <div><div class="fl">Skala</div><input class="fi" type="text" id="sc-scale"></div>
+      </div>
+      <div id="sc-info" style="margin:12px 0;padding:12px;background:var(--s2);border-radius:var(--rs);font-size:12px;line-height:1.5"></div>
+      <div class="fl">Harga beli (Rp)</div><input class="fi" type="number" id="sc-price" inputmode="numeric">
+      <div class="fl" style="margin-top:8px">Kondisi</div>
+      <select class="fi" id="sc-health"><option>MISB</option><option>MIB</option><option>BIB</option><option>Loose</option></select>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button class="btn-s" id="sc-wish" style="flex:1"><i class="ti ti-heart" style="vertical-align:-2px;margin-right:4px"></i>Wishlist</button>
+        <button class="btn-p" id="sc-coll" style="flex:1"><i class="ti ti-plus" style="vertical-align:-2px;margin-right:4px"></i>Koleksi</button>
+      </div>
+      <button class="btn-s" id="sc-again" style="margin-top:8px;width:100%">Scan lagi</button>
+    </div>
+    <button class="btn-s" id="sc-close" style="margin-top:12px;width:100%">Tutup</button>
+  </div>
+</div>
+<input type="file" id="fi-sc-gal" accept="image/*" style="display:none">
+<input type="file" id="fi-sc-cam" accept="image/*" capture="environment" style="display:none">
+<div class="mo" id="valall-m" onclick="if(event.target===this&&!valRun)closeM('valall-m')">
+  <div class="ms">
+    <div class="mh"></div>
+    <div class="mt">Nilai AI semua koleksi</div>
+    <div style="font-size:12px;color:var(--t3);margin-bottom:12px">Estimasi harga Indonesia untuk banyak item sekaligus. Hasil dibatasi 0.5x-1.5x harga beli dan hanya estimasi AI (tanpa cek marketplace).</div>
+    <select class="fi" id="va-scope" onchange="vaCount()" style="margin-bottom:8px">
+      <option value="missing">Hanya item yang belum punya nilai</option>
+      <option value="nomarket">Semua, kecuali nilai dari data marketplace</option>
+      <option value="all">Semua item (menimpa)</option>
+    </select>
+    <div id="va-info" style="font-size:12px;margin-bottom:10px"></div>
+    <div class="prog" style="height:6px;margin-bottom:6px"><div class="prog-f" id="va-bar" style="width:0%"></div></div>
+    <div id="va-status" style="font-size:11px;color:var(--t3);margin-bottom:14px;min-height:14px"></div>
+    <div style="display:flex;gap:8px"><button class="btn-s" style="flex:1" id="va-close" onclick="vaCancel()">Tutup</button><button class="btn-p" style="flex:1" id="va-go" onclick="runValAll()">Mulai</button></div>
+  </div>
+</div>
+
+<div class="mo" id="about-m" onclick="if(event.target===this)closeM('about-m')">
+  <div class="ms" style="text-align:center;padding-top:20px">
+    <div class="mh"></div>
+    <div style="font-size:40px;margin-bottom:10px">🎌</div>
+    <div style="font-size:18px;font-weight:700;margin-bottom:4px">Collectro</div>
+    <div style="font-size:12px;color:var(--t3);margin-bottom:20px">Manajemen koleksi personal<br>Data tersimpan aman di cloud</div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── STATE ──
+var db,sample,assets,user,downloads;
+var uid=null;
+var items=[],locs=[],wishes=[];
+var curCat='',curView='g',curRad=30,curCity='jakarta',curCityName='Jakarta & sekitarnya';
+var storPath=[];
+var aiTimer=null;
+var pendingPhotos=[];
+var _sug=[];
+
+// ── CONST ──
+var EMO={Figure:'🎌',Gunpla:'🤖',Diecast:'🚗',TCG:'🃏',LEGO:'🧱',Statue:'🏆',Lainnya:'📦'};
+var CITIES=[
+  {n:'Jakarta & sekitarnya',a:'jakarta',e:'🏙️'},
+  {n:'Tangerang Selatan',a:'tangsel',e:'🏘️'},
+  {n:'Tangerang',a:'tangerang',e:'🏭'},
+  {n:'Bekasi',a:'bekasi',e:'🌆'},
+  {n:'Depok',a:'depok',e:'🏫'},
+  {n:'Bogor',a:'bogor',e:'🌿'},
+  {n:'Bandung',a:'bandung',e:'🏔️'},
+  {n:'Surabaya',a:'surabaya',e:'⚓'},
+  {n:'Yogyakarta',a:'yogya',e:'🏯'},
+  {n:'Bali',a:'bali',e:'🌺'},
+];
+var EVENTS=[
+  {t:'Indonesia Comic Con 2026',v:'Jakarta (cek lokasi resmi)',c:'jakarta',km:25,s:'2026-10-03',e:'2026-10-04',ico:'🦸',tags:['Komik','Toys','Cosplay'],pri:true,price:'Cek penyelenggara'},
+  {t:'AEONIME Vol. 5',v:'AEON Mall Tanjung Barat',c:'jakarta',km:12,s:'2026-10-08',e:'2026-10-11',ico:'🎌',tags:['Anime'],pri:false,price:'-'},
+  {t:'Jakarta Toyfinity Week Vol. 3',v:'Lippo Mall Puri',c:'jakarta',km:20,s:'2026-10-14',e:'2026-10-18',ico:'🧸',tags:['Toys','Figure'],pri:true,price:'-'},
+  {t:'Indonesia Hobbies Collector Expo',v:'QBIG BSD City',c:'tangsel',km:12,s:'2026-10-16',e:'2026-10-18',ico:'🏆',tags:['Collectibles','Figure','Diecast'],pri:true,price:'-'},
+  {t:'Comipara 7',v:'Jogja Expo Center, Bantul',c:'yogya',km:430,s:'2026-10-17',e:'2026-10-18',ico:'🏯',tags:['Komik','Anime'],pri:false,price:'-'},
+  {t:'IGX Stage 3',v:'ICE BSD Hall 09-10',c:'tangsel',km:10,s:'2026-10-24',e:'2026-10-25',ico:'🎮',tags:['Gaming','Pop Culture'],pri:false,price:'-'},
+  {t:'Comic Frontier 23',v:'ICE BSD City',c:'tangsel',km:10,s:'2026-10-31',e:'2026-11-01',ico:'📚',tags:['Komik','Anime'],pri:true,price:'-'},
+  {t:'Jak Japan Matsuri 2026',v:'GBK Senayan',c:'jakarta',km:20,s:'2026-10-31',e:'2026-11-01',ico:'🏮',tags:['Jepang'],pri:false,price:'-'}
+];
+function evDays(e){var t=new Date();t.setHours(0,0,0,0);var d=new Date(e.s+'T00:00:00');return Math.round((d-t)/86400000);}
+function evDate(e){var M=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];var a=new Date(e.s+'T00:00:00'),b=new Date(e.e+'T00:00:00');return a.getDate()+(a.getMonth()!==b.getMonth()?' '+M[a.getMonth()]:'')+(e.e!==e.s?'–'+b.getDate():'')+' '+M[b.getMonth()];}
+
+// ── UTILS ──
+function fmt(n){if(!n||isNaN(n))return '—';if(n>=1000000)return 'Rp '+(n/1000000).toFixed(1)+'jt';if(n>=1000)return 'Rp '+(n/1000).toFixed(0)+'rb';return 'Rp '+n;}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.style.opacity='1';t.style.transform='translateX(-50%) translateY(0)';clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity='0';t.style.transform='translateX(-50%) translateY(16px)';},2600);}
+function setSyncDot(s){document.getElementById('sdot').className='sync-dot '+s;}
+function openM(id){document.getElementById(id).classList.add('open');}
+function closeM(id){document.getElementById(id).classList.remove('open');}
+
+// ── NAV ──
+function switchTab(t){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.ni,.ni-add').forEach(function(n){n.classList.remove('active');});
+  document.getElementById('page-'+t).classList.add('active');
+  var n=document.getElementById('nav-'+t);
+  if(n)n.classList.add('active');
+  window.scrollTo(0,0);
+}
+function switchDisc(el,id){
+  if(el){document.querySelectorAll('#page-discover .tab').forEach(function(t){t.classList.remove('active');});el.classList.add('active');}
+  ['health','wishlist','events','export'].forEach(function(i){
+    document.getElementById('disc-'+i).style.display=i===id?'block':'none';
+  });
+  if(id==='events')renderEvents();
+  if(id==='health')renderHealth();
+  if(id==='wishlist')renderWishlist();
+}
+
+// ── INIT ──
+async function init(){
+  try{db=await claude.use('db');}catch(e){db=null;}
+  try{sample=await claude.use('sample');}catch(e){sample=null;}
+  try{assets=await claude.use('assets');}catch(e){assets=null;}
+  try{user=await claude.use('user');}catch(e){user=null;}
+  try{downloads=await claude.use('downloads');}catch(e){downloads=null;}
+
+  if(user){
+    uid=await user.id();
+    if(!uid){await new Promise(function(r){setTimeout(r,1500);});uid=await user.id();}
+    if(uid){
+      try{
+        var p=await user.profiles([uid]);
+        var me=p&&p[uid];
+        if(me&&me.name){
+          document.getElementById('pname').textContent=me.name;
+          var ini=me.name.trim().split(' ').map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase();
+          document.getElementById('pav').textContent=ini||'?';
+        }
+      }catch(e){}
+      document.getElementById('uid-val').textContent=uid;
+      document.getElementById('uid-row').style.display='flex';
+      setLoginWarn(false);
+    }else{
+      setLoginWarn(true,'Akun tidak terdeteksi — coba refresh');
+    }
+  }else{
+    setLoginWarn(true,'Login ke claude.ai diperlukan');
+  }
+
+  if(db&&uid){
+    subItems();subLocs();subWishes();subEvents();
+  }else{
+    renderDashboard();
+  }
+  renderCityList('');
+  renderEvents();
+}
+
+async function copyUid(){
+  if(!uid)return;
+  try{await navigator.clipboard.writeText(uid);toast('ID akun disalin ✓');}
+  catch(e){
+    var r=document.createRange();r.selectNodeContents(document.getElementById('uid-val'));
+    var s=window.getSelection();s.removeAllRanges();s.addRange(r);toast('Tekan lama untuk salin');
+  }
+}
+
+function setLoginWarn(show,msg){
+  var el=document.getElementById('login-warn');
+  if(!el)return;
+  el.style.display=show?'block':'none';
+  if(msg)el.textContent=msg;
+}
+
+// ── DB SUBS ──
+function subItems(){
+  db.collection('u/'+uid+'/items').orderBy('createdAt','desc').onSnapshot(function(snap){
+    items=snap.docs.filter(function(d){return d.exists;}).map(function(d){return Object.assign({id:d.id},d.data());});
+    renderDashboard();renderCollection();renderHealth();
+    renderStorTree();renderStorSum();renderSSet();refreshShelf();
+  });
+}
+function subLocs(){
+  db.collection('u/'+uid+'/locations').onSnapshot(function(snap){
+    locs=snap.docs.filter(function(d){return d.exists;}).map(function(d){return Object.assign({id:d.id},d.data());});
+    populateStorSel();populateLocParent();renderStorTree();renderStorSum();renderSSet();
+  });
+}
+var dbEvents=null;
+function subEvents(){
+  try{db.collection('u/'+uid+'/events').onSnapshot(function(snap){
+    dbEvents=snap.docs.filter(function(d){return d.exists;}).map(function(d){return Object.assign({id:d.id},d.data());}).filter(function(e){return e&&e.t&&e.s&&e.e;});
+    renderEvents();
+  });}catch(x){console.warn('events',x);}
+}
+function subWishes(){
+  db.collection('u/'+uid+'/wishlist').orderBy('createdAt','desc').onSnapshot(function(snap){
+    wishes=snap.docs.filter(function(d){return d.exists;}).map(function(d){return Object.assign({id:d.id},d.data());});
+    renderWishlist();
+  });
+}
+
+// ── DASHBOARD ──
+function renderDashboard(){
+  var tot=items.length;
+  var cost=items.reduce(function(s,i){return s+(i.price||0);},0);
+  var val=items.reduce(function(s,i){return s+(i.marketVal||i.price||0);},0);
+  var roi=cost>0?Math.round((val-cost)/cost*100):0;
+  document.getElementById('st-total').textContent=tot||'0';
+  document.getElementById('st-val').textContent=val>=1000000?(val/1000000).toFixed(1)+'jt':fmt(val);
+  document.getElementById('st-cost').textContent=cost>=1000000?(cost/1000000).toFixed(1)+'jt':fmt(cost);
+  document.getElementById('st-roi').textContent=(roi>=0?'+':'')+roi+'%';
+  document.getElementById('pp-total').textContent=tot;
+  document.getElementById('pp-val').textContent=val>=1000000?(val/1000000).toFixed(1)+'jt':'—';
+  document.getElementById('pp-roi').textContent=(roi>=0?'+':'')+roi+'%';
+  var el=document.getElementById('dash-recent');
+  var rec=items.slice(0,6);
+  el.innerHTML=rec.length?rec.map(icHTML).join(''):'<div class="empty" style="grid-column:span 2;padding:24px"><i class="ti ti-box" style="font-size:32px"></i><p style="font-size:12px">Belum ada koleksi</p></div>';
+}
+
+// ── ITEM HTML ──
+function icHTML(it){
+  var e=EMO[it.category]||'📦';
+  var img=it.mainPhotoId?'<img src="/_blob/'+it.mainPhotoId+'" alt="" onerror="this.style.display=\'none\'">':'';
+  var h=it.health||'MISB';
+  return '<div class="ic" onclick="openDetail(\''+it.id+'\')"><div class="ic-img">'+img+'<span>'+e+'</span><div class="hb hb'+h+'">'+h+'</div>'+(it.mainPhotoId?'':'<div class="ph-add" data-pid="'+it.id+'"><i class="ti ti-camera"></i></div>')+'</div><div class="ic-info"><div class="ic-name">'+esc(it.name)+'</div><div class="ic-brand">'+esc(it.brand||'')+(it.scale?' · '+esc(it.scale):'')+'</div><div class="ic-foot"><div class="ic-val">'+fmt(it.marketVal||it.price||0)+'</div><div class="ic-loc">'+esc(it.storageName||'—')+'</div></div></div></div>';
+}
+function liHTML(it){
+  var e=EMO[it.category]||'📦';
+  var img=it.mainPhotoId?'<img src="/_blob/'+it.mainPhotoId+'" alt="" onerror="this.style.display=\'none\'">':'';
+  var roi=it.price&&it.marketVal?Math.round((it.marketVal-it.price)/it.price*100):null;
+  return '<div class="li" onclick="openDetail(\''+it.id+'\')"><div class="li-th">'+img+'<span>'+e+'</span>'+(it.mainPhotoId?'':'<div class="ph-add" data-pid="'+it.id+'"><i class="ti ti-camera"></i></div>')+'</div><div class="li-info"><div class="li-name">'+esc(it.name)+'</div><div class="li-sub">'+esc(it.brand||'')+(it.category?' · '+esc(it.category):'')+'</div><span class="badge '+(it.health==='MISB'||it.health==='MIB'?'bgn':it.health==='BIB'?'bam':'brd')+'">'+esc(it.health||'MISB')+'</span></div><div class="li-r"><div class="li-val">'+fmt(it.marketVal||it.price||0)+'</div>'+(roi!==null?'<span style="font-size:10px;font-weight:600;color:'+(roi>=0?'var(--gn)':'var(--rd)')+'">'+( roi>=0?'+':'')+roi+'%</span>':'')+'</div></div>';
+}
+
+// ── COLLECTION ──
+function renderCollection(){
+  var q=(document.getElementById('col-q')||{}).value||'';
+  var f=items.filter(function(i){
+    return (!curCat||i.category===curCat)&&(!q||JSON.stringify(i).toLowerCase().includes(q.toLowerCase()));
+  });
+  document.getElementById('col-empty').style.display=f.length?'none':'block';
+  if(curView==='g'){
+    document.getElementById('col-g').innerHTML=f.map(icHTML).join('');
+    document.getElementById('col-g').style.display='grid';
+    document.getElementById('col-l').style.display='none';
+  }else{
+    document.getElementById('col-l').innerHTML=f.map(liHTML).join('');
+    document.getElementById('col-g').style.display='none';
+    document.getElementById('col-l').style.display='flex';
+  }
+}
+function setCat(el,c){document.querySelectorAll('#cat-tabs .tab').forEach(function(t){t.classList.remove('active');});el.classList.add('active');curCat=c;renderCollection();}
+function setView(v){curView=v;document.getElementById('vt-g').classList.toggle('active',v==='g');document.getElementById('vt-l').classList.toggle('active',v==='l');renderCollection();}
+function quickSearch(q,inp){
+  var cq=document.getElementById('col-q');
+  if(cq)cq.value=q;
+  if(q.length>1){
+    switchTab('collection');
+    renderCollection();
+    if(inp)inp.value='';
+    if(cq){cq.focus();try{cq.setSelectionRange(q.length,q.length);}catch(e){}}
+  }else renderCollection();
+}
+
+// ── AI AUTOCOMPLETE ──
+function onAIInput(v){
+  clearTimeout(aiTimer);
+  var spin=document.getElementById('ai-spin');
+  var sugg=document.getElementById('ai-sugg');
+  if(v.length<3){sugg.innerHTML='';return;}
+  spin.className='ai-spin on';
+  aiTimer=setTimeout(function(){doAISuggest(v);},700);
+}
+async function doAISuggest(q){
+  var spin=document.getElementById('ai-spin');
+  var sugg=document.getElementById('ai-sugg');
+  if(!sample){spin.className='ai-spin';sugg.innerHTML='<div style="font-size:11px;color:var(--rd)">AI tidak tersedia</div>';return;}
+  try{
+    var res=await sample.json('You are a collectible toy/figure/model database. Query: "'+q.replace(/"/g,'')+'". Suggest up to 3 matching items. Return ONLY JSON array: [{"name":"full product name","brand":"maker","series":"IP/anime","category":"Figure|Gunpla|Diecast|TCG|LEGO|Statue|Lainnya","scale":"1/7 or N/A","estimatedPrice":1200000}]. Prices in IDR. Only JSON, no markdown.',{modelTier:'quick'});
+    spin.className='ai-spin';
+    _sug=res||[];
+    if(!_sug.length){sugg.innerHTML='<div style="font-size:11px;color:var(--t3)">Tidak ditemukan — coba kata lain</div>';return;}
+    sugg.innerHTML=_sug.map(function(item,i){
+      var e=EMO[item.category]||'📦';
+      return '<div class="ai-item" onclick="applySug('+i+')"><span class="ai-item-ico">'+e+'</span><div class="ai-item-info"><div class="ai-item-name">'+esc(item.name||'')+'</div><div class="ai-item-sub">'+esc(item.brand||'')+(item.series?' · '+esc(item.series):'')+(item.category?' · '+esc(item.category):'')+'</div></div>'+(item.estimatedPrice?'<span class="ai-item-price">~'+fmt(item.estimatedPrice)+'</span>':'')+'</div>';
+    }).join('');
+  }catch(e){
+    spin.className='ai-spin';
+    sugg.innerHTML='<div style="font-size:11px;color:var(--rd)">'+esc(e.message||e.code||'Gagal')+'</div>';
+  }
+}
+function applySug(i){
+  var it=_sug[i];if(!it)return;
+  // Langsung isi form tanpa verify modal
+  if(it.name)document.getElementById('f-name').value=it.name;
+  if(it.brand)document.getElementById('f-brand').value=it.brand;
+  if(it.series)document.getElementById('f-series').value=it.series;
+  if(it.category){
+    var s=document.getElementById('f-cat');
+    for(var j=0;j<s.options.length;j++)if(s.options[j].value===it.category){s.selectedIndex=j;break;}
+  }
+  if(it.scale&&it.scale!=='N/A')document.getElementById('f-scale').value=it.scale;
+  if(it.estimatedPrice&&!document.getElementById('f-price').value)document.getElementById('f-price').value=it.estimatedPrice;
+  document.getElementById('ai-sugg').innerHTML=
+    '<div style="background:var(--gnb);border:.5px solid var(--gn);border-radius:var(--rs);padding:8px 12px;font-size:12px;color:var(--gn)">'
+    +'<i class="ti ti-circle-check" style="vertical-align:-2px;margin-right:4px"></i>'
+    +'Form diisi dari AI — periksa dan tambahkan foto koleksi kamu</div>';
+  document.getElementById('ai-q').value=it.name;
+  // Scroll ke foto section
+  setTimeout(function(){
+    document.getElementById('f-name').scrollIntoView({behavior:'smooth',block:'center'});
+  },200);
+  toast('Data diisi ✓ — jangan lupa tambah foto!');
+}
+
+
+// ── PHOTO ──
+function handleFiles(files){for(var i=0;i<files.length;i++)addPhoto(files[i]);}
+function addPhoto(file){
+  var r=new FileReader();
+  r.onload=function(e){
+    pendingPhotos.push({blob:file,url:e.target.result});
+    renderPstrip();
+  };
+  r.readAsDataURL(file);
+}
+function renderPstrip(){
+  var el=document.getElementById('pstrip');
+  el.innerHTML=pendingPhotos.map(function(p,i){
+    return '<div class="pth"><img src="'+p.url+'" alt=""><div class="pth-del" onclick="rmPhoto('+i+')"><i class="ti ti-x"></i></div></div>';
+  }).join('');
+}
+function rmPhoto(i){pendingPhotos.splice(i,1);renderPstrip();}
+
+// ── SAVE ITEM ──
+async function saveItem(){
+  var name=(document.getElementById('f-name').value||'').trim();
+  var errEl=document.getElementById('save-err');
+  if(!name){errEl.textContent='Nama item wajib diisi';errEl.style.display='block';return;}
+  errEl.style.display='none';
+  if(!uid&&user){uid=await user.id();}
+  if(!db||!uid){setLoginWarn(true,'Login diperlukan untuk menyimpan');toast('Login diperlukan');return;}
+  setSyncDot('sync');
+  var storId=document.getElementById('f-stor').value;
+  var storName=storId?(locs.find(function(l){return l.id===storId;})||{}).name||'':'';
+  var data={
+    name:name,
+    brand:(document.getElementById('f-brand').value||'').trim(),
+    series:(document.getElementById('f-series').value||'').trim(),
+    category:document.getElementById('f-cat').value,
+    scale:(document.getElementById('f-scale').value||'').trim(),
+    health:document.getElementById('f-health').value,
+    price:Number(document.getElementById('f-price').value)||0,
+    buyDate:document.getElementById('f-date').value,
+    storageId:storId,storageName:storName,
+    status:document.getElementById('f-status').value,
+    notes:(document.getElementById('f-notes').value||'').trim(),
+    createdAt:Date.now(),mainPhotoId:null
+  };
+  // Disable button untuk prevent double submit
+  var saveBtn=document.querySelector('#page-add .btn-p');
+  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='Menyimpan...';}
+  try{
+    var ref=await db.collection('u/'+uid+'/items').add(data);
+    if(pendingPhotos.length&&assets){
+      try{var up=await assets.upload(pendingPhotos[0].blob);await ref.update({mainPhotoId:up.id});}catch(ae){console.warn('photo',ae);}
+    }
+    toast('Koleksi disimpan! 🎉');
+    ['f-name','f-brand','f-series','f-scale','f-price','f-date','f-notes'].forEach(function(id){document.getElementById(id).value='';});
+    document.getElementById('f-health').selectedIndex=0;
+    document.getElementById('f-status').selectedIndex=0;
+    document.getElementById('f-stor').value='';
+    document.getElementById('ai-q').value='';
+    document.getElementById('ai-sugg').innerHTML='';
+    pendingPhotos=[];renderPstrip();
+    setSyncDot('ok');
+    switchTab('collection');
+  }catch(e){
+    toast('Gagal: '+(e.message||e.code));
+    setSyncDot('err');
+  }finally{
+    var saveBtn=document.querySelector('#page-add .btn-p');
+    if(saveBtn){saveBtn.disabled=false;saveBtn.innerHTML='<i class="ti ti-device-floppy" style="vertical-align:-2px;margin-right:4px"></i>Simpan koleksi';}
+  }
+}
+
+// ── FOTO ITEM (dari dashboard / koleksi / detail) ──
+var photoTarget=null;
+function askItemPhoto(id){photoTarget=id;closeM('detail-m');setTimeout(function(){openM('photo-it-m');},60);}
+function shrinkImg(file,max){return new Promise(function(res){
+  try{var r=new FileReader();r.onload=function(e){var im=new Image();im.onload=function(){
+    var k=Math.min(1,max/Math.max(im.width,im.height));var c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+    c.getContext('2d').drawImage(im,0,0,c.width,c.height);c.toBlob(function(b){res(b||file);},'image/jpeg',0.85);};
+    im.onerror=function(){res(file);};im.src=e.target.result;};r.onerror=function(){res(file);};r.readAsDataURL(file);}catch(x){res(file);}
+});}
+async function saveItemPhoto(file){
+  var id=photoTarget;if(!file||!id)return;
+  if(!assets){toast('Upload foto tidak tersedia');return;}
+  toast('Mengunggah foto…');
+  try{
+    var blob=await shrinkImg(file,1280);
+    var up=await assets.upload(blob);
+    await db.doc('u/'+uid+'/items/'+id).update({mainPhotoId:up.id});
+    toast('Foto tersimpan ✓');
+  }catch(e){console.warn('photo',e);toast('Gagal upload foto');}
+  photoTarget=null;
+}
+(function(){
+  function bind(){
+    var g=document.getElementById('fi-it-gal'),c=document.getElementById('fi-it-cam');
+    if(!g||!c)return;
+    [g,c].forEach(function(inp){inp.addEventListener('change',function(){var f=inp.files&&inp.files[0];inp.value='';if(f)saveItemPhoto(f);});});
+    document.getElementById('pi-gal').addEventListener('click',function(){closeM('photo-it-m');g.click();});
+    document.getElementById('pi-cam').addEventListener('click',function(){closeM('photo-it-m');c.click();});
+  }
+  bind();
+  document.addEventListener('click',function(ev){
+    var t=ev.target.closest?ev.target.closest('.ph-add'):null;
+    if(t){ev.stopPropagation();ev.preventDefault();askItemPhoto(t.getAttribute('data-pid'));}
+  },true);
+})();
+
+async function dlItemPhoto(id){
+  var it=items.find(function(i){return i.id===id;});if(!it||!it.mainPhotoId)return;
+  try{
+    toast('Menyiapkan foto…');
+    var r=await fetch('/_blob/'+it.mainPhotoId);if(!r.ok)throw new Error('http '+r.status);
+    var blob=await r.blob();
+    var ext=(blob.type.split('/')[1]||'jpg').replace('jpeg','jpg').replace(/[^a-z0-9]/gi,'')||'jpg';
+    var fn=(it.name||'foto').replace(/[\\/:*?"<>|]+/g,'').trim().slice(0,80)+'.'+ext;
+    await downloads.save({filename:fn,data:blob});
+    toast('Foto diunduh ✓');
+  }catch(e){console.warn('dl',e);toast('Gagal mengunduh foto');}
+}
+
+// ── SCAN BARANG ──
+var scanBusy=false,scanBlob=null,scanBlobs=[],scanRes=null,scanAbort=null;
+function scanReset(){
+  scanBlob=null;scanBlobs=[];scanRes=null;document.getElementById('sc-prev').innerHTML='';
+  ['sc-prev','sc-status','sc-res'].forEach(function(i){document.getElementById(i).style.display='none';});
+  document.getElementById('sc-pick').style.display='block';
+  document.getElementById('sc-tag').value='';document.getElementById('sc-hint').value='';
+}
+var scanImgOK=false;
+async function openScan(){
+  if(!sample){toast('AI tidak tersedia');return;}
+  scanImgOK=false;
+  try{var lm=await sample.limits();scanImgOK=!!(lm&&lm.images);}catch(e){scanImgOK=false;}
+  scanReset();
+  document.getElementById('sc-note').style.display=scanImgOK?'none':'block';
+  document.getElementById('sc-go').style.display='none';
+  openM('scan-m');
+}
+async function scanRun(file){
+  if(!file)return;
+  if(scanBlobs.length>=3){toast('Maksimal 3 foto');return;}
+  var b;try{b=await shrinkImg(file,1280);}catch(e){b=file;}
+  scanBlobs.push(b);scanBlob=scanBlobs[0];
+  var pv=document.getElementById('sc-prev');pv.style.display='block';pv.innerHTML='';
+  var row=document.createElement('div');row.style.cssText='display:flex;gap:6px;overflow-x:auto';
+  scanBlobs.forEach(function(x){var im=document.createElement('img');im.src=URL.createObjectURL(x);im.alt='';im.style.cssText='height:110px;border-radius:var(--rs);background:var(--s2);flex-shrink:0';row.appendChild(im);});
+  pv.appendChild(row);
+  var hint=document.createElement('div');hint.style.cssText='font-size:11px;color:var(--t3);margin-top:6px';
+  hint.textContent=scanBlobs.length+'/3 foto. Tambah foto tulisan/label di kotak atau tag harga agar lebih akurat, lalu tap Analisis.';
+  pv.appendChild(hint);
+  document.getElementById('sc-go').style.display='block';
+}
+async function scanAnalyze(){
+  var hint0=(document.getElementById('sc-hint').value||'').trim();
+  if(!scanImgOK&&!hint0){toast('Isi nama/petunjuk barang dulu');return;}
+  if(scanImgOK&&!scanBlobs.length){toast('Ambil foto dulu');return;}
+  scanBusy=true;
+  document.getElementById('sc-pick').style.display='none';
+  document.getElementById('sc-res').style.display='none';
+  var st=document.getElementById('sc-status');st.style.display='block';st.textContent=scanImgOK?'Mengenali barang…':'Menganalisis…';
+  try{
+    var tag=Number(document.getElementById('sc-tag').value)||0;
+    var hint=(document.getElementById('sc-hint').value||'').trim();
+    var p='Kamu pakar kolektor figure/gunpla/diecast/TCG/LEGO/statue di Indonesia, membantu pemilik yang sedang di event/toko. '
+      +(scanImgOK?'Ada '+scanBlobs.length+' foto barang yang sama (mungkin kotak depan, label/belakang, tag harga). LANGKAH 1: baca SEMUA teks yang terlihat di foto (nama produk, nama karakter, brand/logo, seri, skala 1/x, kode produk, JAN/barcode, bahasa Jepang/Inggris di kotak, teks pada tag harga) dan tulis ke field "ocr". LANGKAH 2: simpulkan produk dari teks + bentuk/desain/kotak; kenali lini produk (mis. S.H.Figuarts, Figuarts Zero, Banpresto Grandista, MG/HG/RG/PG, Hot Wheels, Tomica, Pokemon/OPCG, dll) dan nama karakter/pose/versi. ':'Barang dijelaskan pemilik hanya lewat teks; tidak ada foto. ')
+      +(hint?'Petunjuk dari pemilik: '+hint+'. ':'')
+      +'JANGAN menebak: bila teks/produk tidak terbaca jelas, isi name dengan deskripsi apa adanya (mis. "Figure karakter X, kotak tidak terbaca"), set confidence "rendah", dan di notes sebutkan foto apa yang perlu diambil ulang. '
+      +'LANGKAH 3: estimasi harga pasar di INDONESIA hari ini (Rupiah; harga jual ulang / toko hobi lokal, BUKAN retail Eropa/AS, tanpa markup ongkir/pajak; patokan harga resmi Jepang x kurs bila retail baru). Kondisi (MISB/MIB/BIB/Loose) dari yang terlihat. '
+      +(tag?'Harga di tag/ditawarkan: Rp '+tag+'. Nilai apakah wajar dibanding pasar. ':'')
+      +'Waspadai bootleg/KO (cetakan kotak buram, logo salah, kualitas foto produk, harga terlalu murah) dan sebutkan bila ada. '
+      +'Return ONLY JSON: {"ocr":string (teks yang terbaca, ringkas),"name":string,"brand":string,"series":string,"category":"Figure|Gunpla|Diecast|TCG|LEGO|Statue|Lainnya","scale":string,"condition":"MISB|MIB|BIB|Loose","low":number,"avg":number,"high":number,"confidence":"tinggi|sedang|rendah","verdict":string (1 kalimat soal kewajaran harga tag bila ada, jika tidak ada ""),"notes":string (maks 2 kalimat)}';
+    var r=await sample.json(p,scanImgOK?{images:scanBlobs,modelTier:'complex',cache:false}:{modelTier:'complex',cache:false});
+    scanRes=r||{};
+    document.getElementById('sc-name').value=scanRes.name||'';
+    document.getElementById('sc-brand').value=scanRes.brand||'';
+    document.getElementById('sc-series').value=scanRes.series||'';
+    var cs=document.getElementById('sc-cat');for(var i=0;i<cs.options.length;i++){if(cs.options[i].value===scanRes.category){cs.selectedIndex=i;break;}}
+    document.getElementById('sc-scale').value=scanRes.scale||'';
+    var hs=document.getElementById('sc-health');for(var j=0;j<hs.options.length;j++){if(hs.options[j].value===scanRes.condition){hs.selectedIndex=j;break;}}
+    document.getElementById('sc-price').value=tag||Math.round(scanRes.avg||0)||'';
+    var cf=scanRes.confidence||'sedang';
+    var cc=cf==='tinggi'?'var(--gn)':cf==='rendah'?'var(--rd)':'var(--am)';
+    var info='<div style="font-size:11px;color:var(--t3)">Estimasi pasar Indonesia</div>'
+      +'<div style="font-size:18px;font-weight:800;margin:2px 0">'+fmt(scanRes.low)+' – '+fmt(scanRes.high)+'</div>'
+      +'<div style="font-size:12px">Rata-rata: <b>'+fmt(scanRes.avg)+'</b> · Keyakinan: <b style="color:'+cc+'">'+esc(cf)+'</b></div>';
+    if(tag&&scanRes.avg){var d=Math.round((tag-scanRes.avg)/scanRes.avg*100);info+='<div style="margin-top:6px;font-size:12px"><b>Tag '+fmt(tag)+'</b> = '+(d>0?'+':'')+d+'% dari rata-rata'+(scanRes.verdict?' — '+esc(scanRes.verdict):'')+'</div>';}
+    else if(scanRes.verdict){info+='<div style="margin-top:6px;font-size:12px">'+esc(scanRes.verdict)+'</div>';}
+    if(scanRes.ocr)info+='<div style="margin-top:6px;font-size:11px;color:var(--t3)">Teks terbaca: '+esc(scanRes.ocr)+'</div>';
+    if(scanRes.notes)info+='<div style="margin-top:6px;font-size:11px;color:var(--t3)">'+esc(scanRes.notes)+'</div>';
+    info+='<div style="margin-top:6px;font-size:10px;color:var(--t3)">Estimasi AI dari foto, bukan cek marketplace. Anggap perkiraan kasar.</div>';
+    document.getElementById('sc-info').innerHTML=info;
+    st.style.display='none';document.getElementById('sc-res').style.display='block';
+  }catch(e){
+    console.warn('scan',e);
+    st.style.display='block';st.textContent='Gagal menganalisis ('+((e&&e.code)||'error')+'). Coba foto ulang.';
+    document.getElementById('sc-pick').style.display='block';
+  }
+  scanBusy=false;
+}
+async function scanSave(kind){
+  var name=(document.getElementById('sc-name').value||'').trim();
+  if(!name){toast('Nama wajib diisi');return;}
+  if(!db||!uid){toast('Login diperlukan');return;}
+  var price=Number(document.getElementById('sc-price').value)||0;
+  var cat=document.getElementById('sc-cat').value,brand=(document.getElementById('sc-brand').value||'').trim();
+  scanBusy=true;
+  try{
+    var photoId=null;
+    if(assets&&scanBlob){try{var up=await assets.upload(scanBlob);photoId=up.id;}catch(ae){console.warn('scan photo',ae);}}
+    if(kind==='coll'){
+      var now=new Date();var bd=now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2);
+      var d={name:name,brand:brand,series:(document.getElementById('sc-series').value||'').trim(),category:cat,scale:(document.getElementById('sc-scale').value||'').trim(),health:document.getElementById('sc-health').value,price:price,buyDate:bd,storageId:'',storageName:'',status:'In Storage',notes:'Ditambahkan dari scan event',createdAt:Date.now(),mainPhotoId:photoId};
+      if(scanRes&&scanRes.avg){d.marketVal=Math.round(scanRes.avg);d.marketValAt=new Date().toISOString();d.marketValSrc='Scan AI (foto)';}
+      await db.collection('u/'+uid+'/items').add(d);
+      toast('Masuk koleksi ✓');
+    }else{
+      await db.collection('u/'+uid+'/wishlist').add({name:name,brand:brand,category:cat,price:price||Math.round((scanRes&&scanRes.avg)||0),status:'Available',createdAt:Date.now(),mainPhotoId:photoId});
+      toast('Masuk wishlist ❤️');
+    }
+    scanBusy=false;closeM('scan-m');scanReset();
+  }catch(e){scanBusy=false;toast('Gagal menyimpan: '+(e.message||e.code||''));}
+}
+(function(){
+  var g=document.getElementById('fi-sc-gal'),c=document.getElementById('fi-sc-cam');if(!g||!c)return;
+  [g,c].forEach(function(inp){inp.addEventListener('change',function(){var f=inp.files&&inp.files[0];inp.value='';if(f)scanRun(f);});});
+  document.getElementById('sc-cam').addEventListener('click',function(){c.click();});
+  document.getElementById('sc-gal').addEventListener('click',function(){g.click();});
+  document.getElementById('sc-coll').addEventListener('click',function(){scanSave('coll');});
+  document.getElementById('sc-wish').addEventListener('click',function(){scanSave('wish');});
+  document.getElementById('sc-again').addEventListener('click',scanReset);
+  document.getElementById('sc-go').addEventListener('click',scanAnalyze);
+  document.getElementById('sc-close').addEventListener('click',function(){if(!scanBusy)closeM('scan-m');});
+})();
+
+// ── DETAIL ──
+function openDetail(id){
+  var it=items.find(function(i){return i.id===id;});if(!it)return;
+  var e=EMO[it.category]||'📦';
+  var img=it.mainPhotoId?'<img src="/_blob/'+it.mainPhotoId+'" style="display:block;width:100%;height:auto;max-height:65vh;object-fit:contain" alt="">':'<span style="font-size:72px">'+e+'</span>';
+  var roi=it.price&&it.marketVal?Math.round((it.marketVal-it.price)/it.price*100):null;
+  var sheet=document.getElementById('detail-sheet');
+  sheet.innerHTML=
+    '<div class="mh"></div>'
+    +'<div style="width:100%;'+(it.mainPhotoId?'min-height:80px;':'aspect-ratio:1.6;')+'background:var(--s2);border-radius:var(--r);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;margin-bottom:16px">'+img+'</div>'
+    +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div><h3 style="font-size:16px;font-weight:700;margin-bottom:2px">'+esc(it.name)+'</h3><p style="font-size:12px;color:var(--t3)">'+esc(it.brand||'')+(it.category?' · '+esc(it.category):'')+'</p></div><div class="hb hb'+(it.health||'MISB')+'" style="position:static;width:28px;height:28px;font-size:13px">'+esc(it.health||'A')+'</div></div>'
+    +'<div style="display:flex;gap:6px;margin-bottom:14px"><span class="badge bpu">'+esc(it.category||'')+'</span>'+(it.status?'<span class="badge bgn">'+esc(it.status)+'</span>':'')+(it.scale?'<span class="badge bam">'+esc(it.scale)+'</span>':'')+'</div>'
+    +'<div class="dr"><span class="dk">Harga beli</span><span class="dv">'+fmt(it.price)+'</span></div>'
+    +'<div class="dr"><span class="dk">Nilai pasar</span><span class="dv" style="color:var(--gn)">'+fmt(it.marketVal||it.price||0)+(roi!==null?' ('+(roi>=0?'+':'')+roi+'%)':'')+'</span></div>'
+    +'<div class="dr"><span class="dk">Lokasi</span><span class="dv">'+esc(it.storageName||'—')+'</span></div>'
+    +'<div class="dr"><span class="dk">Tanggal beli</span><span class="dv">'+esc(it.buyDate||'—')+'</span></div>'
+    +(it.notes?'<div class="dr" style="flex-direction:column;gap:4px"><span class="dk">Catatan</span><span class="dv" style="font-size:12px">'+esc(it.notes)+'</span></div>':'')
+    +'<div id="detail-action-btns" style="display:flex;gap:8px;margin-top:16px"></div>'
+    +'<div style="height:8px"></div>';
+  var row=document.getElementById('detail-action-btns');
+  var bH=document.createElement('button');bH.className='btn-s';bH.style.cssText='flex:1;color:var(--rd);border-color:var(--rd)';
+  bH.innerHTML='<i class="ti ti-trash" style="vertical-align:-2px;margin-right:4px"></i>Hapus';
+  bH.addEventListener('click',function(ev){ev.stopPropagation();delItem(id);});
+  var bE=document.createElement('button');bE.className='btn-s';bE.style.flex='1';
+  bE.innerHTML='<i class="ti ti-pencil" style="vertical-align:-2px;margin-right:4px"></i>Edit';
+  bE.addEventListener('click',function(ev){ev.stopPropagation();openEditItem(id);});
+  var bV=document.createElement('button');bV.className='btn-p';bV.style.flex='1';
+  bV.innerHTML='<i class="ti ti-chart-bar" style="vertical-align:-2px;margin-right:4px"></i>Nilai AI';
+  bV.addEventListener('click',function(ev){ev.stopPropagation();doValuate(id);});
+  row.appendChild(bH);row.appendChild(bE);row.appendChild(bV);
+  var bP=document.createElement('button');bP.className='btn-s';bP.style.cssText='width:100%;margin-top:8px';
+  bP.innerHTML='<i class="ti ti-camera" style="vertical-align:-2px;margin-right:4px"></i>'+(it.mainPhotoId?'Ganti foto':'Tambah foto');
+  bP.addEventListener('click',function(ev){ev.stopPropagation();askItemPhoto(id);});
+  row.parentNode.insertBefore(bP,row.nextSibling);
+  if(it.mainPhotoId){
+    var bD=document.createElement('button');bD.className='btn-s';bD.style.cssText='width:100%;margin-top:8px';
+    bD.innerHTML='<i class="ti ti-download" style="vertical-align:-2px;margin-right:4px"></i>Unduh foto';
+    bD.addEventListener('click',function(ev){ev.stopPropagation();dlItemPhoto(id);});
+    bP.parentNode.insertBefore(bD,bP.nextSibling);
+  }
+  openM('detail-m');
+}
+function openEditItem(id){
+  var it=items.find(function(i){return i.id===id;});if(!it)return;
+  document.getElementById('ei-id').value=id;
+  document.getElementById('ei-name').value=it.name||'';
+  document.getElementById('ei-brand').value=it.brand||'';
+  document.getElementById('ei-series').value=it.series||'';
+  document.getElementById('ei-scale').value=it.scale||'';
+  document.getElementById('ei-price').value=it.price||'';
+  document.getElementById('ei-date').value=it.buyDate||'';
+  document.getElementById('ei-notes').value=it.notes||'';
+  // Set kategori
+  var sc=document.getElementById('ei-cat');
+  for(var i=0;i<sc.options.length;i++)if(sc.options[i].value===it.category){sc.selectedIndex=i;break;}
+  // Set kondisi
+  var sh=document.getElementById('ei-health');
+  for(var i=0;i<sh.options.length;i++)if(sh.options[i].value===it.health){sh.selectedIndex=i;break;}
+  // Set status
+  var ss=document.getElementById('ei-status');
+  for(var i=0;i<ss.options.length;i++)if(ss.options[i].value===it.status){ss.selectedIndex=i;break;}
+  // Set storage — populate dulu
+  var stor=document.getElementById('ei-stor');
+  stor.innerHTML='<option value="">— pilih lokasi —</option>'+locs.map(function(l){
+    return '<option value="'+l.id+'"'+(l.id===it.storageId?' selected':'')+'>'+esc(l.name)+'</option>';
+  }).join('');
+  // Tutup detail dulu, lalu buka edit — pakai requestAnimationFrame supaya tidak conflict
+  closeM('detail-m');
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      openM('edit-item-m');
+    });
+  });
+}
+
+async function saveEditItem(){
+  var id=document.getElementById('ei-id').value;
+  var name=(document.getElementById('ei-name').value||'').trim();
+  if(!id||!name){toast('Nama wajib diisi');return;}
+  if(!db||!uid){toast('Login diperlukan');return;}
+  var storId=document.getElementById('ei-stor').value;
+  var storName=storId?(locs.find(function(l){return l.id===storId;})||{}).name||'':'';
+  try{
+    await db.doc('u/'+uid+'/items/'+id).update({
+      name:name,
+      brand:(document.getElementById('ei-brand').value||'').trim(),
+      series:(document.getElementById('ei-series').value||'').trim(),
+      category:document.getElementById('ei-cat').value,
+      scale:(document.getElementById('ei-scale').value||'').trim(),
+      health:document.getElementById('ei-health').value,
+      price:Number(document.getElementById('ei-price').value)||0,
+      buyDate:document.getElementById('ei-date').value,
+      storageId:storId,storageName:storName,
+      status:document.getElementById('ei-status').value,
+      notes:(document.getElementById('ei-notes').value||'').trim(),
+    });
+    closeM('edit-item-m');
+    toast('Koleksi diperbarui ✓');
+  }catch(e){toast('Gagal: '+(e.message||e.code));}
+}
+
+async function delItem(id){
+  if(!db||!uid)return;
+  window._deleteItemId=id;
+  var sheet=document.getElementById('detail-sheet');
+  var old=document.getElementById('del-confirm');
+  if(old)old.remove();
+  var div=document.createElement('div');
+  div.id='del-confirm';
+  div.style.cssText='padding:12px 0 0;display:flex;gap:8px;';
+  var b1=document.createElement('button');
+  b1.className='btn-s';b1.style.flex='1';b1.textContent='Batal';
+  b1.onclick=function(){div.remove();};
+  var b2=document.createElement('button');
+  b2.className='btn-p';b2.style.cssText='flex:1;background:var(--rd)';b2.textContent='Ya, Hapus';
+  b2.onclick=confirmDelItem;
+  div.appendChild(b1);div.appendChild(b2);
+  sheet.appendChild(div);
+}
+async function confirmDelItem(){
+  var id=window._deleteItemId;
+  if(!id||!db||!uid)return;
+  try{await db.doc('u/'+uid+'/items/'+id).delete();closeM('detail-m');toast('Item dihapus');}
+  catch(e){toast('Gagal: '+(e.message||e.code));}
+}
+
+// ── NILAI AI MASSAL ──
+var valRun=false,valCancel=false;
+function vaPick(){
+  var sc=document.getElementById('va-scope').value;
+  return items.filter(function(it){
+    if(sc==='missing')return !it.marketVal;
+    if(sc==='nomarket')return !/tokopedia|shopee|marketplace/i.test(it.marketValSrc||'');
+    return true;
+  });
+}
+function vaCount(){var n=vaPick().length;document.getElementById('va-info').innerHTML='<b>'+n+'</b> item akan diestimasi'+(n?' (~'+Math.ceil(n/8)+' permintaan AI)':'');document.getElementById('va-go').disabled=!n||valRun;}
+function openValAll(){
+  if(!sample){toast('AI tidak tersedia');return;}
+  document.getElementById('va-bar').style.width='0%';document.getElementById('va-status').textContent='';
+  vaCount();openM('valall-m');
+}
+function vaCancel(){if(valRun){valCancel=true;document.getElementById('va-status').textContent='Menghentikan...';}else closeM('valall-m');}
+function vaClamp(it,v){
+  v=Math.round(Number(v)||0);if(v<=0)return 0;
+  if(it.price){var lo=Math.round(it.price*0.5),hi=Math.round(it.price*1.5);if(v>hi)v=hi;else if(v<lo)v=lo;}
+  return v;
+}
+async function vaEstimate(chunk){
+  var list=chunk.map(function(it){return {id:it.id,nama:it.name,brand:it.brand||'',series:it.series||'',kategori:it.category||'',skala:it.scale||'',kondisi:it.health||'A',harga_beli:it.price||0};});
+  var p='Estimasi nilai pasar di INDONESIA hari ini (harga jual ulang / toko hobi lokal, Rupiah), BUKAN harga retail Eropa/AS, tanpa markup ongkir/pajak. Kondisi: MISB sealed, MIB/BIB bagus dalam box, Loose tanpa box (lebih murah). Barang retail biasa jarang bernilai di luar 0.5x-1.5x harga_beli kecuali limited/langka; jika tidak yakin beri estimasi konservatif. Item: '+JSON.stringify(list)+'. Return ONLY JSON array: [{"id":"...","avg":number}] satu objek per item, id harus sama persis.';
+  var res=await sample.json(p,{modelTier:'default'});
+  return Array.isArray(res)?res:(res&&res.items)||[];
+}
+async function runValAll(){
+  if(valRun)return;
+  if(!uid&&user){uid=await user.id();}
+  if(!db||!uid||!sample){toast('Tidak tersedia');return;}
+  var todo=vaPick();if(!todo.length)return;
+  valRun=true;valCancel=false;
+  var go=document.getElementById('va-go');go.disabled=true;document.getElementById('va-close').textContent='Hentikan';
+  var done=0,ok=0,fail=0,st=document.getElementById('va-status'),bar=document.getElementById('va-bar');
+  for(var i=0;i<todo.length&&!valCancel;i+=8){
+    var chunk=todo.slice(i,i+8);
+    try{
+      var res=await vaEstimate(chunk);
+      var byId={};res.forEach(function(r){if(r&&r.id)byId[r.id]=r.avg;});
+      for(var j=0;j<chunk.length;j++){
+        var it=chunk[j],v=vaClamp(it,byId[it.id]);
+        if(!v){fail++;continue;}
+        try{await db.doc('u/'+uid+'/items/'+it.id).update({marketVal:v,marketValAt:new Date().toISOString(),marketValSrc:'Estimasi AI (app, massal)'});ok++;}catch(e){fail++;}
+      }
+    }catch(e){fail+=chunk.length;}
+    done+=chunk.length;
+    bar.style.width=Math.round(done/todo.length*100)+'%';
+    st.textContent=done+'/'+todo.length+' diproses · '+ok+' berhasil'+(fail?' · '+fail+' gagal':'');
+  }
+  var stopped=valCancel;valRun=false;valCancel=false;
+  document.getElementById('va-close').textContent='Tutup';go.disabled=false;
+  st.textContent=(stopped?'Dihentikan. ':'Selesai. ')+ok+' item diperbarui'+(fail?', '+fail+' gagal':'')+'.';
+  toast(ok+' nilai diperbarui ✓');vaCount();
+}
+
+async function doValuate(id){
+  if(!sample){toast('AI tidak tersedia');return;}
+  var it=items.find(function(i){return i.id===id;});if(!it)return;
+  toast('Estimasi harga...');
+  try{
+    var p='Estimasi nilai pasar di INDONESIA hari ini (harga jual ulang / toko hobi lokal, dalam Rupiah), BUKAN harga retail Eropa/AS dan tanpa markup ongkir/pajak. '
+      +'Barang: '+it.name+'; Brand: '+(it.brand||'-')+'; Seri: '+(it.series||'-')+'; Kategori: '+(it.category||'-')+'; Skala: '+(it.scale||'-')+'; Kondisi: '+(it.health||'A')+' (MISB/BIB = baru dalam box). '
+      +(it.price?'Harga beli pemilik: Rp '+it.price+' (barang retail biasa jarang bernilai di luar 0.5x-1.5x harga beli, kecuali limited/langka). ':'')
+      +'Jika tidak yakin, beri estimasi konservatif. Return ONLY JSON: {"low":number,"avg":number,"high":number}';
+    var res=await sample.json(p,{modelTier:'default'});
+    var v=Math.round(res&&res.avg||0);
+    if(!v||v<=0){toast('Valuasi gagal');return;}
+    var capped=false;
+    if(it.price){var lo=Math.round(it.price*0.5),hi=Math.round(it.price*1.5);if(v>hi){v=hi;capped=true;}else if(v<lo){v=lo;capped=true;}}
+    if(db&&uid){await db.doc('u/'+uid+'/items/'+id).update({marketVal:v,marketValAt:new Date().toISOString(),marketValSrc:'Estimasi AI (app)'+(capped?', dibatasi 0.5-1.5x harga beli':'')});toast('Estimasi: '+fmt(v)+(capped?' (dibatasi)':'')+' ✓');}
+  }catch(e){toast('Valuasi gagal');}
+}
+
+// ── STORAGE ──
+function populateStorSel(){
+  var s=document.getElementById('f-stor');if(!s)return;
+  var v=s.value;
+  s.innerHTML='<option value="">— pilih lokasi —</option>'+locs.map(function(l){return '<option value="'+l.id+'"'+(l.id===v?' selected':'')+'>'+esc(l.name)+'</option>';}).join('');
+}
+function populateLocParent(){
+  var s=document.getElementById('loc-parent');if(!s)return;
+  s.innerHTML='<option value="">— tidak ada —</option>'+locs.map(function(l){return '<option value="'+l.id+'">'+esc(l.name)+'</option>';}).join('');
+}
+function locIds(id){var out=[id];locs.forEach(function(l){if(l.parentId===id)out=out.concat(locIds(l.id));});return out;}
+function locCount(id){var ids=locIds(id);return items.filter(function(i){return ids.indexOf(i.storageId)>=0;}).length;}
+function refreshShelf(){
+  if(typeof storPath==='undefined'||!storPath.length)return;
+  var loc=storPath[storPath.length-1],el=document.getElementById('shelf-items');if(!el)return;
+  var ids=locIds(loc.id);var its=items.filter(function(i){return ids.indexOf(i.storageId)>=0;});
+  el.innerHTML=its.length?its.map(liHTML).join(''):'<div class="empty"><i class="ti ti-inbox"></i><p>Belum ada item di sini</p></div>';
+}
+function renderStorSum(){
+  var el=document.getElementById('stor-sum');if(!el)return;
+  el.innerHTML=[
+    {v:locs.filter(function(l){return l.type==='floor';}).length,l:'Lantai',i:'🏢'},
+    {v:locs.filter(function(l){return l.type==='room';}).length,l:'Ruangan',i:'🚪'},
+    {v:locs.filter(function(l){return l.type==='rack'||l.type==='shelf';}).length,l:'Rak/Shelf',i:'🗄️'},
+    {v:items.length,l:'Total item',i:'📦'},
+  ].map(function(s){return '<div style="background:var(--s1);border:.5px solid var(--b2);border-radius:var(--rs);padding:10px 12px;display:flex;align-items:center;gap:8px"><span style="font-size:18px">'+s.i+'</span><div><div style="font-size:16px;font-weight:700">'+s.v+'</div><div style="font-size:10px;color:var(--t3)">'+s.l+'</div></div></div>';}).join('');
+}
+function renderStorTree(){
+  var el=document.getElementById('stor-tree');if(!el)return;
+  var roots=locs.filter(function(l){return !l.parentId;});
+  if(!roots.length){
+    el.innerHTML='<div class="empty"><i class="ti ti-building-warehouse"></i><p>Belum ada lokasi</p></div><button class="btn-p" onclick="openM(\'addloc-m\')" style="margin:0 auto;display:block;width:auto;padding:10px 24px">Tambah lokasi</button>';
+    return;
+  }
+  el.innerHTML=roots.map(snHTML).join('');
+}
+function snHTML(loc){
+  var ch=locs.filter(function(l){return l.parentId===loc.id;});
+  var ni=locCount(loc.id);
+  var ico=loc.type==='floor'?'🏢':loc.type==='room'?'🚪':loc.type==='shelf'?'📌':loc.type==='box'?'📦':'🗄️';
+  var bg=loc.type==='floor'?'var(--acb)':loc.type==='room'?'var(--gnb)':'var(--amb)';
+  var fp=loc.capacity?Math.round(ni/loc.capacity*100):0;
+  var fc=fp>90?'var(--rd)':fp>70?'var(--am)':'var(--ac)';
+  var html='<div class="snode" id="sn-'+loc.id+'"><div class="snh" onclick="toggleSN(\''+loc.id+'\')"><div class="sn-ico" style="background:'+bg+'">'+ico+'</div><div class="sn-info"><div class="sn-name">'+esc(loc.name)+'</div><div class="sn-sub">'+(loc.capacity?ni+'/'+loc.capacity+' terisi':ni+' item')+(ch.length?' · '+ch.length+' sub':'')+'</div>'+(loc.capacity?'<div class="prog"><div class="prog-f" style="width:'+fp+'%;background:'+fc+'"></div></div>':'')+'</div><div class="sn-r">'+(ni?'<span class="sn-cnt">'+ni+'</span>':'')+(ch.length?'<i class="ti ti-chevron-right sn-ch"></i>':'')+'</div></div>';
+  if(ch.length){
+    html+='<div class="sn-children">'+ch.map(function(c){
+      var ci=locCount(c.id);
+      var cf=c.capacity?Math.round(ci/c.capacity*100):0;
+      var cc=cf>90?'var(--rd)':cf>70?'var(--am)':'var(--gn)';
+      var cico=c.type==='shelf'?'📌':c.type==='box'?'📦':'🗄️';
+      return '<div class="sch" onclick="drillStor(\''+c.id+'\')" ><span class="sch-ico">'+cico+'</span><div class="sch-info"><div class="sch-name">'+esc(c.name)+'</div><div class="sch-sub">'+(c.capacity?ci+'/'+c.capacity+' posisi':ci+' item')+'</div>'+(c.capacity?'<div class="prog"><div class="prog-f" style="width:'+cf+'%;background:'+cc+'"></div></div>':'')+'</div><span style="font-size:11px;color:var(--t2);margin-left:auto">'+ci+' item</span></div>';
+    }).join('')+'</div>';
+  }
+  html+='</div>';
+  return html;
+}
+function toggleSN(id){var n=document.getElementById('sn-'+id);if(n)n.classList.toggle('exp');}
+function drillStor(locId){
+  var loc=locs.find(function(l){return l.id===locId;});if(!loc)return;
+  storPath.push(loc);updateBC();
+  document.getElementById('stor-home-view').style.display='none';
+  document.getElementById('stor-shelf-view').style.display='block';
+  document.getElementById('shelf-title').textContent=loc.name;
+  var ids0=locIds(locId);var its=items.filter(function(i){return ids0.indexOf(i.storageId)>=0;});
+  document.getElementById('shelf-items').innerHTML=its.length?its.map(liHTML).join(''):'<div class="empty"><i class="ti ti-inbox"></i><p>Belum ada item di sini</p></div>';
+}
+function navStor(id){
+  if(id==='home'){storPath=[];}
+  else{var idx=storPath.findIndex(function(p){return p.id===id;});if(idx>=0)storPath=storPath.slice(0,idx+1);}
+  updateBC();
+  if(!storPath.length){
+    document.getElementById('stor-home-view').style.display='block';
+    document.getElementById('stor-shelf-view').style.display='none';
+  }
+}
+function updateBC(){
+  var bc=document.getElementById('stor-bc');
+  var h='<span class="bc-i'+(storPath.length?'':' active')+'" onclick="navStor(\'home\')">🏠 Rumah</span>';
+  storPath.forEach(function(p,i){
+    h+='<span class="bc-sep">›</span><span class="bc-i'+(i===storPath.length-1?' active':'')+'" onclick="navStor(\''+p.id+'\')">'+esc(p.name)+'</span>';
+  });
+  bc.innerHTML=h;
+}
+
+// ── SAVE/EDIT LOC ──
+async function saveLoc(){
+  var name=(document.getElementById('loc-name').value||'').trim();
+  if(!name){toast('Nama wajib diisi');return;}
+  if(!db||!uid){toast('Login diperlukan');return;}
+  try{
+    await db.collection('u/'+uid+'/locations').add({name:name,type:document.getElementById('loc-type').value,capacity:Number(document.getElementById('loc-cap').value)||0,parentId:document.getElementById('loc-parent').value||null,createdAt:Date.now()});
+    closeM('addloc-m');document.getElementById('loc-name').value='';toast('Lokasi disimpan 📍');
+  }catch(e){toast('Gagal: '+(e.message||e.code));}
+}
+function renderSSet(){
+  var el=document.getElementById('sset-list');if(!el)return;
+  if(!locs.length){el.innerHTML='<div class="empty" style="padding:20px"><p>Belum ada lokasi</p></div>';return;}
+  el.innerHTML=locs.map(function(l){
+    var ico=l.type==='floor'?'🏢':l.type==='room'?'🚪':l.type==='shelf'?'📌':l.type==='box'?'📦':'🗄️';
+    var ni=locCount(l.id);
+    var fp=l.capacity?Math.round(ni/l.capacity*100):0;
+    return '<div class="sset-row" onclick="openEditLoc(\''+l.id+'\')"><div class="sset-ico">'+ico+'</div><div class="sset-info"><div class="sset-name">'+esc(l.name)+'</div><div class="sset-sub">'+l.type+(l.capacity?' · '+ni+'/'+l.capacity:' · '+ni+' item')+'</div>'+(l.capacity?'<div class="prog" style="width:80px"><div class="prog-f" style="width:'+fp+'%"></div></div>':'')+'</div><i class="ti ti-pencil" style="font-size:15px;color:var(--t3)"></i></div>';
+  }).join('');
+}
+function openEditLoc(id){
+  var l=locs.find(function(x){return x.id===id;});if(!l)return;
+  document.getElementById('el-id').value=id;
+  document.getElementById('el-name').value=l.name;
+  document.getElementById('el-cap').value=l.capacity||0;
+  openM('editloc-m');
+}
+async function updateLoc(){
+  var id=document.getElementById('el-id').value;
+  var name=(document.getElementById('el-name').value||'').trim();
+  if(!id||!name||!db||!uid)return;
+  try{await db.doc('u/'+uid+'/locations/'+id).update({name:name,capacity:Number(document.getElementById('el-cap').value)||0});closeM('editloc-m');toast('Diperbarui ✓');}
+  catch(e){toast('Gagal: '+(e.message||e.code));}
+}
+async function delLoc(){
+  var id=document.getElementById('el-id').value;
+  if(!id||!db||!uid)return;
+  // Inline confirm
+  var btn=event.target;
+  if(btn.dataset.confirmed!=='1'){
+    btn.textContent='Tap lagi untuk konfirmasi';
+    btn.style.background='var(--rd)';
+    btn.style.color='#fff';
+    btn.dataset.confirmed='1';
+    setTimeout(function(){btn.textContent='Hapus';btn.style.background='';btn.style.color='var(--rd)';btn.dataset.confirmed='';},3000);
+    return;
+  }
+  try{await db.doc('u/'+uid+'/locations/'+id).delete();closeM('editloc-m');toast('Lokasi dihapus');}
+  catch(e){toast('Gagal: '+(e.message||e.code));}
+}
+
+// ── HEALTH ──
+function renderHealth(){
+  var tot=items.length;
+  if(!tot){
+    document.getElementById('hscore').textContent='—';
+    document.getElementById('hsub').textContent='Belum ada koleksi';
+    document.getElementById('hbar').style.width='0';
+    document.getElementById('hgrid').innerHTML='';
+    document.getElementById('h-issues').innerHTML='<div class="empty"><i class="ti ti-heart"></i><p>Belum ada data</p></div>';
+    return;
+  }
+  var g={MISB:0,MIB:0,BIB:0,Loose:0};
+  items.forEach(function(i){g[i.health||'MISB']=(g[i.health||'MISB']||0)+1;});
+  var sc=Math.round(((g.MISB||0)*100+(g.MIB||0)*85+(g.BIB||0)*60+(g.Loose||0)*30)/tot);
+  document.getElementById('hscore').textContent=sc;
+  document.getElementById('hsub').textContent=tot+' item · '+((g.C||0)+(g.D||0))+' perlu perhatian';
+  document.getElementById('hbar').style.width=sc+'%';
+  document.getElementById('hgrid').innerHTML=[
+    {v:g.MISB||0,l:'MISB',i:'✨',c:'ok'},{v:g.MIB||0,l:'MIB',i:'📦',c:'ok'},
+    {v:g.BIB||0,l:'BIB',i:'🔧',c:'warn'},{v:g.Loose||0,l:'Loose',i:'🎭',c:'bad'},
+    {v:items.filter(function(i){return i.status==='On Display';}).length,l:'On Display',i:'🖼️',c:'ok'},
+    {v:items.filter(function(i){return !i.storageId;}).length,l:'Tanpa lokasi',i:'❓',c:'bad'},
+  ].map(function(h){return '<div class="hci '+h.c+'"><div class="hci-ico">'+h.i+'</div><div class="hci-val">'+h.v+'</div><div class="hci-lbl">'+h.l+'</div></div>';}).join('');
+  var iss=items.filter(function(i){return i.health==='BIB'||i.health==='Loose';});
+  document.getElementById('h-issues').innerHTML=iss.length?iss.map(function(it){return '<div class="li" onclick="openDetail(\''+it.id+'\')" style="border-color:var(--rd)"><div class="li-th"><span>'+(EMO[it.category]||'📦')+'</span></div><div class="li-info"><div class="li-name">'+esc(it.name)+'</div><div class="li-sub">'+esc(it.brand||'')+'</div><span class="badge brd">Grade '+(it.health||'C')+'</span></div><i class="ti ti-alert-triangle" style="color:var(--rd);font-size:18px"></i></div>';}).join(''):'<div class="empty"><i class="ti ti-shield-check"></i><p>Semua kondisi baik!</p></div>';
+}
+
+// ── WISHLIST ──
+function renderWishlist(){
+  var el=document.getElementById('wish-list');if(!el)return;
+  var tot=document.getElementById('wish-total');
+  if(tot)tot.textContent=wishes.length+' item';
+  el.innerHTML=wishes.length?wishes.map(function(w){
+    return '<div class="li"><div class="li-th"><span>'+(EMO[w.category]||'📦')+'</span></div><div class="li-info"><div class="li-name">'+esc(w.name||'—')+'</div><div class="li-sub">'+esc(w.brand||'')+(w.category?' · '+w.category:'')+'</div><span class="badge '+(w.status==='Available'?'bgn':w.status==='Preorder'?'brd':'bam')+'">'+esc(w.status||'')+'</span></div><div class="li-r"><div class="li-val">'+fmt(w.price)+'</div><i class="ti ti-trash" style="font-size:16px;color:var(--rd);cursor:pointer" onclick="delWish(\''+w.id+'\')"></i></div></div>';
+  }).join(''):'<div class="empty"><i class="ti ti-heart"></i><p>Wishlist masih kosong</p></div>';
+}
+async function saveWish(){
+  var name=(document.getElementById('w-name').value||'').trim();
+  if(!name){toast('Nama wajib diisi');return;}
+  if(!db||!uid){toast('Login diperlukan');return;}
+  try{
+    await db.collection('u/'+uid+'/wishlist').add({name:name,brand:(document.getElementById('w-brand').value||'').trim(),category:document.getElementById('w-cat').value,price:Number(document.getElementById('w-price').value)||0,status:document.getElementById('w-status').value,createdAt:Date.now()});
+    closeM('addwish-m');document.getElementById('w-name').value='';document.getElementById('w-price').value='';toast('Ditambahkan ❤️');
+  }catch(e){toast('Gagal: '+(e.message||e.code));}
+}
+async function delWish(id){
+  if(!db||!uid)return;
+  try{await db.doc('u/'+uid+'/wishlist/'+id).delete();toast('Dihapus dari wishlist');}
+  catch(e){toast('Gagal');}
+}
+
+// ── EVENTS ──
+function safeUrl(u){u=String(u||'').trim();return /^https?:\/\//i.test(u)?u:'';}
+function evLinks(e){
+  var L=[];
+  var u=safeUrl(e.url),ig=safeUrl(e.ig),fb=safeUrl(e.fb),sr=safeUrl(e.src);
+  if(u)L.push(['Situs','link',u]);
+  if(ig)L.push(['Instagram','camera',ig]);
+  if(fb)L.push(['Facebook','group',fb]);
+  if(!L.length&&sr)L.push(['Info','info',sr]);
+  if(!L.length)return '';
+  return '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">'+L.map(function(x){
+    return '<a href="'+esc(x[2])+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:14px;background:var(--acb);color:var(--ac2);font-size:11px;font-weight:600;text-decoration:none"><i class="ti ti-'+x[1]+'" style="font-size:13px"></i>'+x[0]+'</a>';
+  }).join('')+'</div>';
+}
+function renderEvents(){
+  var today=new Date();today.setHours(0,0,0,0);var SRC=(dbEvents&&dbEvents.length)?dbEvents:EVENTS;SRC.forEach(function(e){e.days=evDays(e);});var ev=SRC.filter(function(e){return new Date(e.e+'T23:59:59')>=today&&(curRad>=9999||e.c===curCity||e.km<=curRad);}).sort(function(a,b){return a.days-b.days;});
+  var c=document.getElementById('ev-count');if(c)c.textContent=ev.length+' event ditemukan';
+  var el=document.getElementById('ev-list');if(!el)return;
+  var MN=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];var lastM='';
+  el.innerHTML=ev.map(function(e){
+    var sd=new Date(e.s+'T00:00:00');if(sd<today)sd=today;
+    var mk=sd.getFullYear()+'-'+sd.getMonth();
+    var sep='';
+    if(mk!==lastM){lastM=mk;var cnt=ev.filter(function(x){var d=new Date(x.s+'T00:00:00');if(d<today)d=today;return d.getFullYear()+'-'+d.getMonth()===mk;}).length;
+      sep='<div style="display:flex;align-items:center;gap:10px;margin:16px 0 8px"><span style="font-size:12px;font-weight:700;color:var(--ac2);white-space:nowrap">'+MN[sd.getMonth()]+' '+sd.getFullYear()+'</span><span style="flex:1;height:1px;background:var(--b2)"></span><span style="font-size:10px;color:var(--t3)">'+cnt+' event</span></div>';}
+    var ug=e.days<=7?'var(--rd)':e.days<=21?'var(--am)':'var(--t3)';
+    var ugb=e.days<=7?'var(--rdb)':e.days<=21?'var(--amb)':'var(--s3)';
+    var dt=e.days<0?'Berlangsung':e.days===0?'Hari ini!':e.days===1?'Besok!':e.days+' hari';
+    var card='<div class="evcard">'+(e.pri?'<div style="background:var(--acb);padding:3px 12px;font-size:10px;font-weight:700;color:var(--ac2)">⭐ FEATURED</div>':'')+'<div style="padding:12px;display:flex;gap:12px;align-items:center"><div style="width:48px;height:48px;border-radius:8px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">'+e.ico+'</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;margin-bottom:2px">'+esc(e.t)+'</div><div style="font-size:11px;color:var(--t3);margin-bottom:4px">'+esc(e.v)+' · '+evDate(e)+(e.price&&e.price!=='-'?' · '+esc(e.price):'')+'</div><div style="display:flex;flex-wrap:wrap;gap:4px">'+e.tags.map(function(t){return '<span class="badge bpu" style="font-size:9px">'+t+'</span>';}).join('')+'</div>'+evLinks(e)+'</div><div style="background:'+ugb+';color:'+ug+';padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700;flex-shrink:0">'+dt+'</div></div></div>';
+    return sep+card;
+  }).join('');
+}
+function setRad(el,r){document.querySelectorAll('#rad-tabs .tab').forEach(function(t){t.classList.remove('active');});el.classList.add('active');curRad=r;renderEvents();}
+function renderCityList(q){
+  var el=document.getElementById('city-list');if(!el)return;
+  var list=q?CITIES.filter(function(c){return c.n.toLowerCase().includes(q.toLowerCase());}):CITIES;
+  el.innerHTML=list.map(function(c){
+    var act=c.a===curCity;
+    return '<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:'+(act?'var(--acb)':'var(--s1)')+';border:.5px solid '+(act?'var(--ac)':'var(--b2)')+';border-radius:var(--rs);cursor:pointer;margin-bottom:6px" onclick="pickCity(\''+c.a+'\',\''+c.n+'\')">'+'<span style="font-size:18px">'+c.e+'</span><span style="font-size:13px;font-weight:'+(act?'600':'400')+';color:'+(act?'var(--ac2)':'var(--t1)')+'">'+c.n+'</span>'+(act?'<i class="ti ti-circle-check" style="color:var(--ac);margin-left:auto;font-size:18px"></i>':'')+'</div>';
+  }).join('');
+}
+function filterCities(q){renderCityList(q);}
+function pickCity(a,n){curCity=a;curCityName=n;document.getElementById('ev-loc').textContent='📍 '+n;renderEvents();closeM('locpick-m');}
+function useGPS(){closeM('locpick-m');toast('Mendeteksi GPS...');setTimeout(function(){pickCity('tangsel','Tangerang Selatan');toast('📍 Ciputat, Tangsel');},1500);}
+
+
+// ── IMPORT / EXPORT EXCEL ──
+var IMP_COLS=['Nama*','Brand','Series','Kategori','Skala','Kondisi','Harga Beli (Rp)','Tanggal Beli','Lokasi','Status','Catatan'];
+var IMP_CAT=['Figure','Gunpla','Diecast','TCG','LEGO','Statue','Lainnya'];
+var IMP_HEALTH=['MISB','MIB','BIB','Loose'];
+var IMP_STATUS=['On Display','In Storage','For Sale','On Loan'];
+var impRows=[];
+function impKey(h){
+  h=String(h||'').toLowerCase().replace(/\*/g,'').replace(/\(.*?\)/g,'').trim();
+  var m={'nama':'name','name':'name','brand':'brand','series':'series','kategori':'category','category':'category','skala':'scale','scale':'scale','kondisi':'health','condition':'health','harga beli':'price','harga':'price','tanggal beli':'buyDate','tanggal':'buyDate','lokasi':'loc','storage':'loc','status':'status','catatan':'notes','notes':'notes'};
+  return m[h]||null;
+}
+function impPick(v,list,def){var t=String(v||'').trim().toLowerCase();for(var i=0;i<list.length;i++){if(list[i].toLowerCase()===t)return list[i];}return def;}
+function impNum(v){
+  if(typeof v==='number')return isNaN(v)?0:Math.round(v);
+  var t=String(v==null?'':v).replace(/rp/ig,'').replace(/\s/g,'');
+  if(/^\d{1,3}([.,]\d{3})+$/.test(t))t=t.replace(/[.,]/g,'');
+  else t=t.replace(/,/g,'.');
+  return Math.round(Number(t.replace(/[^\d.]/g,'')))||0;
+}
+function impDate(v){
+  if(v instanceof Date&&!isNaN(v)){v=new Date(v.getTime()+43200000);var y=v.getFullYear(),m=('0'+(v.getMonth()+1)).slice(-2),d=('0'+v.getDate()).slice(-2);return y+'-'+m+'-'+d;}
+  var t=String(v||'').trim();if(!t)return '';
+  if(/^\d{4}-\d{2}-\d{2}$/.test(t))return t;
+  var m=t.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+  if(m)return m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2);
+  return '';
+}
+async function importFile(inp){
+  var f=inp.files&&inp.files[0];inp.value='';if(!f)return;
+  if(typeof XLSX==='undefined'){toast('Library Excel belum termuat, coba lagi');return;}
+  toast('Membaca file...');
+  try{
+    var buf=await f.arrayBuffer();
+    var wb=XLSX.read(buf,{type:'array',cellDates:true});
+    var ws=wb.Sheets['Koleksi']||wb.Sheets[wb.SheetNames[0]];
+    var aoa=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
+    if(!aoa.length){toast('File kosong');return;}
+    var keys=aoa[0].map(impKey);
+    if(keys.indexOf('name')<0){toast('Kolom "Nama" tidak ditemukan. Pakai template.');return;}
+    var seen={};items.forEach(function(it){seen[(it.name||'').trim().toLowerCase()+'|'+(it.brand||'').trim().toLowerCase()]=1;});
+    var ok=[],skipDup=0,skipNoName=0,skipEx=0,noLoc={},fixed=0;
+    for(var r=1;r<aoa.length;r++){
+      var row=aoa[r],o={};
+      keys.forEach(function(k,i){if(k)o[k]=row[i];});
+      var name=String(o.name||'').trim();
+      if(!name){if(row.some(function(c){return String(c).trim();}))skipNoName++;continue;}
+      if(/^\[contoh\]/i.test(name)){skipEx++;continue;}
+      var brand=String(o.brand||'').trim();
+      var dk=name.toLowerCase()+'|'+brand.toLowerCase();
+      if(seen[dk]){skipDup++;continue;}
+      seen[dk]=1;
+      var cat=impPick(o.category,IMP_CAT,'Lainnya');if(String(o.category||'').trim()&&cat==='Lainnya'&&String(o.category).trim().toLowerCase()!=='lainnya')fixed++;
+      var health=impPick(o.health,IMP_HEALTH,'MIB');
+      var price=impNum(o.price);
+      var locName=String(o.loc||'').trim(),stId='',stName='';
+      if(locName){var L=locs.find(function(l){return (l.name||'').trim().toLowerCase()===locName.toLowerCase();});if(L){stId=L.id;stName=L.name;}else{noLoc[locName]=(noLoc[locName]||0)+1;}}
+      ok.push({name:name,brand:brand,series:String(o.series||'').trim(),category:cat,scale:String(o.scale||'').trim(),health:health,price:price,buyDate:impDate(o.buyDate),storageId:stId,storageName:stName,status:impPick(o.status,IMP_STATUS,'On Display'),notes:String(o.notes||'').trim(),mainPhotoId:null});
+    }
+    impRows=ok;
+    document.getElementById('imp-sum').innerHTML='<b>'+ok.length+'</b> item siap diimport dari <b>'+esc(f.name)+'</b>';
+    var iss=[];
+    if(skipDup)iss.push('• '+skipDup+' dilewati: duplikat (nama + brand sudah ada)');
+    if(skipNoName)iss.push('• '+skipNoName+' baris dilewati: nama kosong');
+    if(skipEx)iss.push('• '+skipEx+' baris [CONTOH] dilewati');
+    if(fixed)iss.push('• '+fixed+' kategori tidak dikenal menjadi Lainnya');
+    Object.keys(noLoc).forEach(function(n){iss.push('• Lokasi "'+esc(n)+'" tidak ditemukan ('+noLoc[n]+' item), masuk tanpa lokasi');});
+    document.getElementById('imp-issues').innerHTML=iss.join('<br>')||'Tidak ada masalah.';
+    var go=document.getElementById('imp-go');go.disabled=!ok.length;go.textContent=ok.length?'Import '+ok.length+' item':'Tidak ada item';
+    openM('import-m');
+  }catch(e){toast('Gagal membaca: '+(e.message||e));}
+}
+async function runImport(){
+  if(!impRows.length)return;
+  if(!uid&&user){uid=await user.id();}
+  if(!db||!uid){toast('Login diperlukan');return;}
+  var go=document.getElementById('imp-go');go.disabled=true;
+  var rows=impRows.slice(),done=0,fail=0;setSyncDot('sync');
+  for(var i=0;i<rows.length;i+=10){
+    var chunk=rows.slice(i,i+10);
+    await Promise.all(chunk.map(function(d,j){
+      d.createdAt=Date.now()+i+j;
+      return db.collection('u/'+uid+'/items').add(d).then(function(){done++;}).catch(function(){fail++;});
+    }));
+    go.textContent='Mengimpor '+done+'/'+rows.length+'...';
+  }
+  setSyncDot(fail?'err':'ok');impRows=[];closeM('import-m');
+  toast(done+' item diimport'+(fail?', '+fail+' gagal':'')+' ✓');
+  switchTab('collection');
+}
+async function saveXlsx(aoa,filename,widths){
+  var ws=XLSX.utils.aoa_to_sheet(aoa);ws['!cols']=widths.map(function(w){return {wch:w};});
+  var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Koleksi');
+  var out=XLSX.write(wb,{type:'array',bookType:'xlsx'});
+  await downloads.save({filename:filename,data:new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})});
+}
+async function downloadTemplate(){
+  if(!downloads||typeof XLSX==='undefined'){toast('Template tidak tersedia');return;}
+  try{await saveXlsx([IMP_COLS,['[CONTOH] Nama item','Bandai','One Piece','Figure','1/7','MIB',500000,'2026-09-15','Rak A1','On Display','Catatan opsional']],'collectro-template-import.xlsx',[40,16,22,12,10,10,16,14,22,13,30]);}
+  catch(e){if(e.code==='declined')toast('Dibatalkan');else toast('Gagal: '+(e.message||e.code));}
+}
+async function exportXlsx(){
+  var aoa=[IMP_COLS.concat(['Nilai Pasar (Rp)','ROI %'])];
+  items.forEach(function(it){
+    var roi=it.price&&it.marketVal?Math.round((it.marketVal-it.price)/it.price*100):'';
+    aoa.push([it.name||'',it.brand||'',it.series||'',it.category||'',it.scale||'',it.health||'',it.price||0,it.buyDate||'',it.storageName||'',it.status||'',it.notes||'',it.marketVal||'',roi]);
+  });
+  await saveXlsx(aoa,'collectro-koleksi.xlsx',[40,16,22,12,10,10,16,14,22,13,30,16,8]);
+}
+
+// ── EXPORT ──
+async function doExport(type){
+  if(!downloads){toast('Export tidak tersedia');return;}
+  if(!items.length){toast('Belum ada koleksi');return;}
+  toast('Menyiapkan...');
+  try{
+    if(type==='xlsx'){
+      if(typeof XLSX==='undefined'){toast('Library Excel belum termuat');return;}
+      await exportXlsx();
+    }else if(type==='csv'){
+      var rows=[['No','Nama','Brand','Kategori','Series','Scale','Kondisi','Harga Beli','Nilai Pasar','ROI%','Lokasi','Status']];
+      items.forEach(function(it,i){
+        var roi=it.price&&it.marketVal?Math.round((it.marketVal-it.price)/it.price*100):0;
+        rows.push([i+1,it.name||'',it.brand||'',it.category||'',it.series||'',it.scale||'',it.health||'A',it.price||0,it.marketVal||it.price||0,roi,it.storageName||'',it.status||'']);
+      });
+      var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+      await downloads.save({filename:'collectro-inventaris.csv',data:new Blob([csv],{type:'text/csv'})});
+    }else{
+      var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Koleksi Collectro</title><style>body{font-family:sans-serif;padding:24px;max-width:800px;margin:0 auto}h1{color:#7c6ff7}table{width:100%;border-collapse:collapse;margin-top:16px}th{background:#7c6ff7;color:white;padding:8px;text-align:left;font-size:12px}td{padding:8px;border-bottom:1px solid #eee;font-size:12px}</style></head><body><h1>🎌 Laporan Collectro</h1><p style="color:#888">'+new Date().toLocaleDateString('id-ID')+'</p><table><thead><tr><th>#</th><th>Nama</th><th>Brand</th><th>Kategori</th><th>Kondisi</th><th>Harga Beli</th><th>Nilai Pasar</th><th>Lokasi</th></tr></thead><tbody>'+items.map(function(it,i){return '<tr><td>'+(i+1)+'</td><td>'+esc(it.name||'')+'</td><td>'+esc(it.brand||'')+'</td><td>'+esc(it.category||'')+'</td><td>'+esc(it.health||'A')+'</td><td>'+fmt(it.price)+'</td><td>'+fmt(it.marketVal||it.price||0)+'</td><td>'+esc(it.storageName||'—')+'</td></tr>';}).join('')+'</tbody></table></body></html>';
+      await downloads.save({filename:'collectro-laporan.html',data:new Blob([html],{type:'text/html'})});
+    }
+  }catch(e){if(e.code==='declined')toast('Dibatalkan');else toast('Gagal: '+(e.message||e.code));}
+}
+
+// ── NOTIF ──
+function renderNotif(){
+  var el=document.getElementById('notif-list');if(!el)return;
+  var iss=items.filter(function(i){return i.health==='BIB'||i.health==='Loose';});
+  el.innerHTML=iss.length?iss.map(function(it){return '<div class="li" style="border-left:3px solid var(--rd)"><div class="li-th" style="background:var(--rdb)"><span>⚠️</span></div><div class="li-info"><div class="li-name">Grade '+(it.health||'C')+' — '+esc(it.name||'')+'</div><div class="li-sub">Perlu dicek kondisinya</div></div></div>';}).join(''):'<div class="empty"><i class="ti ti-bell"></i><p>Tidak ada notifikasi</p></div>';
+}
+
+// ── MANAGE / DELETE ──
+function openManageModal(){
+  renderManageList();
+  openM('manage-m');
+}
+
+function renderManageList(){
+  var el=document.getElementById('manage-list');
+  if(!el)return;
+  if(!items.length){
+    el.innerHTML='<div class="empty" style="padding:16px"><p>Belum ada koleksi</p></div>';
+    return;
+  }
+  el.innerHTML=items.map(function(it){
+    var e=EMO[it.category]||'📦';
+    return '<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--s2);border-radius:var(--rs);cursor:pointer">'
+      +'<input type="checkbox" class="manage-cb" data-id="'+it.id+'" style="accent-color:var(--rd);width:18px;height:18px;flex-shrink:0">'
+      +'<span style="font-size:18px;flex-shrink:0">'+e+'</span>'
+      +'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(it.name||'—')+'</div>'
+      +'<div style="font-size:11px;color:var(--t3)">'+esc(it.brand||'')+(it.category?' · '+it.category:'')+'</div></div>'
+      +'</label>';
+  }).join('');
+}
+
+function selectAllManage(){
+  var cbs=document.querySelectorAll('.manage-cb');
+  var allChecked=Array.from(cbs).every(function(cb){return cb.checked;});
+  cbs.forEach(function(cb){cb.checked=!allChecked;});
+}
+
+async function deleteSelected(){
+  var cbs=document.querySelectorAll('.manage-cb:checked');
+  if(!cbs.length){toast('Pilih item dulu');return;}
+  if(!db||!uid){toast('Login diperlukan');return;}
+  window._deleteIds=Array.from(cbs).map(function(cb){return cb.getAttribute('data-id');});
+  var el=document.getElementById('manage-list');
+  el.innerHTML='<div style="background:var(--rdb);border:.5px solid var(--rd);border-radius:var(--rs);padding:14px;text-align:center">'
+    +'<div style="font-size:14px;font-weight:700;color:var(--rd);margin-bottom:6px">Hapus '+window._deleteIds.length+' item?</div>'
+    +'<div style="font-size:12px;color:var(--t3);margin-bottom:14px">Item yang dihapus tidak bisa dikembalikan</div>'
+    +'<div style="display:flex;gap:8px">'
+    +'<button class="btn-s" style="flex:1" onclick="renderManageList()">Batal</button>'
+    +'<button class="btn-p" style="flex:1;background:var(--rd)" onclick="doDeleteItems()"><i class="ti ti-trash" style="vertical-align:-2px;margin-right:4px"></i>Ya, Hapus</button>'
+    +'</div></div>';
+}
+
+async function doDeleteItems(){
+  var ids=window._deleteIds||[];
+  if(!ids.length||!db||!uid)return;
+  var failed=0;
+  for(var i=0;i<ids.length;i++){
+    try{await db.doc('u/'+uid+'/items/'+ids[i]).delete();}
+    catch(e){failed++;}
+  }
+  window._deleteIds=[];
+  closeM('manage-m');
+  if(failed>0)toast('Selesai — '+failed+' gagal dihapus');
+  else toast(ids.length+' item dihapus ✓');
+}
+
+// ── BOOT ──
+window.addEventListener('DOMContentLoaded',function(){
+  // init nav active state
+  updateBC();
+  // open notif modal → render notif
+  document.getElementById('notif-m').addEventListener('click',function(){renderNotif();});
+  // boot app
+  if(window.claude&&window.claude.use){
+    init();
+  }else{
+    var retry=0;
+    var t=setInterval(function(){
+      retry++;
+      if(window.claude&&window.claude.use){clearInterval(t);init();}
+      else if(retry>10){clearInterval(t);toast('Buka di claude.ai untuk fitur lengkap');}
+    },500);
+  }
+});
+</script>
+</body>
+</html>
