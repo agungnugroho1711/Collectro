@@ -889,6 +889,23 @@ select.fi option{background:var(--s2);}
   </div>
 </div>
 
+<div class="mo" id="ss-m" onclick="if(event.target===this&&!ssBusy)closeM('ss-m')">
+  <div class="ms" style="max-height:92vh;overflow-y:auto">
+    <div class="mh"></div>
+    <div class="mt">Cek harga dari screenshot</div>
+    <div id="ss-item" style="font-size:13px;font-weight:600;margin-bottom:6px"></div>
+    <div id="ss-help" style="font-size:12px;color:var(--t3);line-height:1.5;margin-bottom:10px">Cari barang ini di Tokopedia (app atau browser), lalu screenshot hasil pencariannya. Upload 1–3 screenshot; makin banyak listing terlihat, makin akurat.</div>
+    <div id="ss-q" style="font-size:11px;margin-bottom:10px"></div>
+    <button class="btn-p" id="ss-pick" style="margin-bottom:8px"><i class="ti ti-photo" style="vertical-align:-2px;margin-right:4px"></i>Pilih screenshot</button>
+    <div id="ss-prev" style="display:flex;gap:6px;overflow-x:auto;margin-bottom:8px"></div>
+    <button class="btn-s" id="ss-go" style="display:none;margin-bottom:8px">Analisis harga</button>
+    <div id="ss-status" style="display:none;font-size:13px;color:var(--t3);text-align:center;padding:12px 0"></div>
+    <div id="ss-res" style="display:none"></div>
+    <button class="btn-s" id="ss-close" style="margin-top:8px">Tutup</button>
+  </div>
+</div>
+<input type="file" id="fi-ss" accept="image/*" multiple style="display:none">
+
 <div class="mo" id="tp-m" onclick="if(event.target===this)closeM('tp-m')">
   <div class="ms">
     <div class="mh"></div>
@@ -1470,10 +1487,14 @@ function openDetail(id){
   bP.innerHTML='<i class="ti ti-camera" style="vertical-align:-2px;margin-right:4px"></i>'+(it.mainPhotoId?'Ganti foto':'Tambah foto');
   bP.addEventListener('click',function(ev){ev.stopPropagation();askItemPhoto(id);});
   row.parentNode.insertBefore(bP,row.nextSibling);
+  var bS=document.createElement('button');bS.className='btn-p';bS.style.cssText='width:100%;margin-top:8px';
+  bS.innerHTML='<i class="ti ti-photo" style="vertical-align:-2px;margin-right:4px"></i>Cek harga dari screenshot Tokopedia';
+  bS.addEventListener('click',function(ev){ev.stopPropagation();openSs(id);});
+  bP.parentNode.insertBefore(bS,bP.nextSibling);
   var bT=document.createElement('button');bT.className='btn-s';bT.style.cssText='width:100%;margin-top:8px';
   bT.innerHTML='<i class="ti ti-search" style="vertical-align:-2px;margin-right:4px"></i>Cek harga Tokopedia (lewat Claude di perangkatmu)';
   bT.addEventListener('click',function(ev){ev.stopPropagation();openTpPrompt([it]);});
-  bP.parentNode.insertBefore(bT,bP.nextSibling);
+  bS.parentNode.insertBefore(bT,bS.nextSibling);
   if(it.mainPhotoId){
     var bD=document.createElement('button');bD.className='btn-s';bD.style.cssText='width:100%;margin-top:8px';
     bD.innerHTML='<i class="ti ti-download" style="vertical-align:-2px;margin-right:4px"></i>Unduh foto';
@@ -1612,6 +1633,84 @@ async function copyTp(){
   try{await navigator.clipboard.writeText(ta.value);toast('Perintah disalin ✓ — tempel di Claude desktop app');}
   catch(e){ta.focus();ta.select();try{document.execCommand('copy');toast('Perintah disalin ✓');}catch(x){toast('Tekan lama lalu salin manual');}}
 }
+
+// ── CEK HARGA DARI SCREENSHOT TOKOPEDIA ──
+var ssId=null,ssBlobs=[],ssBusy=false,ssOut=null;
+function ssMedian(a){a=a.slice().sort(function(x,y){return x-y;});var n=a.length;if(!n)return 0;return n%2?a[(n-1)/2]:Math.round((a[n/2-1]+a[n/2])/2);}
+async function openSs(id){
+  var it=items.find(function(i){return i.id===id;});if(!it)return;
+  if(!sample){toast('AI tidak tersedia');return;}
+  var lm=null;try{lm=await sample.limits();}catch(e){}
+  if(!lm||!lm.images){toast('Kirim gambar ke AI belum aktif di tampilan ini');return;}
+  ssId=id;ssBlobs=[];ssOut=null;
+  document.getElementById('ss-item').textContent=it.name;
+  var q=[it.name].join(' ').replace(/\s+/g,' ').trim();
+  document.getElementById('ss-q').innerHTML='Kata kunci saran: <b>'+esc(q)+'</b>';
+  ['ss-go','ss-status','ss-res'].forEach(function(i){document.getElementById(i).style.display='none';});
+  document.getElementById('ss-prev').innerHTML='';
+  closeM('detail-m');setTimeout(function(){openM('ss-m');},60);
+}
+function ssRenderPrev(){
+  var pv=document.getElementById('ss-prev');pv.innerHTML='';
+  ssBlobs.forEach(function(b){var im=document.createElement('img');im.src=URL.createObjectURL(b);im.alt='';im.style.cssText='height:120px;border-radius:var(--rs);flex-shrink:0';pv.appendChild(im);});
+  document.getElementById('ss-go').style.display=ssBlobs.length?'block':'none';
+}
+async function ssAnalyze(){
+  var it=items.find(function(i){return i.id===ssId;});if(!it||!ssBlobs.length)return;
+  ssBusy=true;var st=document.getElementById('ss-status');st.style.display='block';st.textContent='Membaca listing & harga…';
+  document.getElementById('ss-res').style.display='none';
+  try{
+    var p='Gambar-gambar ini adalah screenshot hasil pencarian Tokopedia (atau marketplace Indonesia lain). Barang yang dicari pemilik: "'+it.name+'" (brand '+(it.brand||'-')+', seri '+(it.series||'-')+', kategori '+(it.category||'-')+', skala '+(it.scale||'-')+'). '
+      +'Baca SETIAP listing yang terlihat: judul (ringkas), harga Rupiah (angka bulat; bila ada harga coret ambil harga setelah diskon; bila rentang harga ambil yang terendah), kondisi bila tertulis (baru/bekas/segel). '
+      +'Tandai match=true HANYA bila listing itu produk yang SAMA (lini, karakter, versi/edisi sama). match=false untuk aksesoris/part/stand/kaos/poster, bootleg/KO/"non ori"/replika/"kw", barang lain atau versi lain, bundle/lot/borongan, harga jelas salah (mis. Rp1). Beri alasan singkat untuk yang false. Jangan mengarang listing yang tidak terlihat. '
+      +'Return ONLY JSON: {"listings":[{"title":string,"price":number,"condition":"baru|bekas|segel|-","match":boolean,"reason":string}],"notes":string}';
+    var r=await sample.json(p,{images:ssBlobs,modelTier:'default',cache:false});
+    var L=(r&&Array.isArray(r.listings))?r.listings:[];
+    var ok=L.filter(function(x){return x&&x.match&&Number(x.price)>1000;});
+    var prices=ok.map(function(x){return Math.round(Number(x.price));});
+    var n=prices.length,med=ssMedian(prices),valid=false,why='';
+    if(it.health==='Loose'&&med)med=Math.round(med*0.75);
+    if(n>=3)valid=true;
+    else if(n===2){var a=Math.min.apply(null,prices),b=Math.max.apply(null,prices);valid=(b-a)/b<=0.3;if(!valid)why='Dua listing selisihnya lebih dari 30%.';}
+    else why='Listing yang cocok kurang dari 2.';
+    if(valid&&it.price&&(med<it.price*0.5||med>it.price*2)&&n<4){valid=false;why='Hasil jauh dari harga beli dan listing cocok kurang dari 4.';}
+    ssOut={med:med,n:n,valid:valid};
+    var h='<div style="padding:12px;background:var(--s2);border-radius:var(--rs);margin-bottom:10px">'
+      +'<div style="font-size:11px;color:var(--t3)">Median '+n+' listing cocok'+(it.health==='Loose'?' (×0,75 untuk Loose)':'')+'</div>'
+      +'<div style="font-size:20px;font-weight:800;margin:2px 0">'+(n?fmt(med):'—')+'</div>'
+      +'<div style="font-size:12px">Nilai sekarang: '+fmt(it.marketVal||0)+(it.price?' · Harga beli: '+fmt(it.price):'')+'</div>'
+      +(valid?'':'<div style="font-size:12px;color:var(--rd);margin-top:6px">Belum cukup untuk disimpan otomatis: '+esc(why)+' Tambah screenshot atau coba kata kunci lain.</div>')
+      +'</div>';
+    h+='<div style="font-size:11px;max-height:30vh;overflow-y:auto;margin-bottom:10px">'+L.map(function(x){
+      return '<div style="display:flex;gap:8px;padding:5px 0;border-bottom:.5px solid var(--b1);'+(x.match?'':'opacity:.5')+'"><span style="flex:1;min-width:0">'+(x.match?'✓ ':'✗ ')+esc(x.title||'')+(x.match?'':' <i>('+esc(x.reason||'')+')</i>')+'</span><b style="flex-shrink:0">'+fmt(Math.round(Number(x.price)||0))+'</b></div>';
+    }).join('')+'</div>';
+    if(r&&r.notes)h+='<div style="font-size:11px;color:var(--t3);margin-bottom:10px">'+esc(r.notes)+'</div>';
+    h+=valid?'<button class="btn-p" onclick="ssSave()">Simpan '+fmt(med)+' sebagai nilai pasar</button>'
+            :(n?'<button class="btn-s" onclick="ssSave(true)">Tetap simpan '+fmt(med)+'</button>':'');
+    var res=document.getElementById('ss-res');res.innerHTML=h;res.style.display='block';st.style.display='none';
+  }catch(e){console.warn('ss',e);st.textContent='Gagal membaca screenshot ('+((e&&e.code)||'error')+'). Coba screenshot lain.';}
+  ssBusy=false;
+}
+async function ssSave(force){
+  if(!ssOut||!ssOut.med||!db||!uid||!ssId)return;
+  if(!ssOut.valid&&!force)return;
+  try{
+    await db.doc('u/'+uid+'/items/'+ssId).update({marketVal:ssOut.med,marketValAt:new Date().toISOString(),marketValSrc:'Tokopedia screenshot median '+ssOut.n+' listing'});
+    toast('Nilai pasar disimpan ✓');closeM('ss-m');
+  }catch(e){toast('Gagal menyimpan: '+(e.message||e.code||''));}
+}
+(function(){
+  var fi=document.getElementById('fi-ss');if(!fi)return;
+  document.getElementById('ss-pick').addEventListener('click',function(){fi.click();});
+  fi.addEventListener('change',async function(){
+    var fs=Array.prototype.slice.call(fi.files||[]);fi.value='';
+    for(var i=0;i<fs.length&&ssBlobs.length<3;i++){var b;try{b=await shrinkImg(fs[i],1600);}catch(e){b=fs[i];}ssBlobs.push(b);}
+    if(fs.length&&ssBlobs.length>=3)toast('Maksimal 3 screenshot');
+    ssRenderPrev();
+  });
+  document.getElementById('ss-go').addEventListener('click',ssAnalyze);
+  document.getElementById('ss-close').addEventListener('click',function(){if(!ssBusy)closeM('ss-m');});
+})();
 
 // ── NILAI AI MASSAL ──
 var valRun=false,valCancel=false;
