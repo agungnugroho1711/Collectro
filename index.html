@@ -219,6 +219,8 @@ select.fi option{background:var(--s2);}
 .ic-brand{font-size:11px;color:var(--t3);margin-bottom:5px;}
 .ic-foot{display:flex;justify-content:space-between;align-items:center;}
 .ic-val{font-size:12px;font-weight:600;color:var(--gn);}
+.sflag{font-size:12px;margin-right:3px;vertical-align:-1px;line-height:1}
+.src-legend{display:flex;gap:12px;padding:0 20px 8px;font-size:11px;color:var(--t3)}
 .ic-loc{font-size:10px;color:var(--t3);}
 
 /* ── LIST ITEMS ── */
@@ -413,6 +415,7 @@ select.fi option{background:var(--s2);}
     <div class="tab" onclick="setCat(this,'LEGO')">LEGO</div>
     <div class="tab" onclick="setCat(this,'Statue')">Statue</div>
   </div>
+  <div class="src-legend"><span>Sumber nilai:</span><span>🇮🇩 Tokopedia</span><span>🇯🇵 Ref. toko Jepang</span><span>tanpa ikon = estimasi AI/manual</span></div>
   <div id="col-g" class="cgrid"></div>
   <div id="col-l" class="llist" style="display:none"></div>
   <div id="col-empty" class="empty" style="display:none"><i class="ti ti-box-off"></i><p>Belum ada item di kategori ini</p></div>
@@ -1095,18 +1098,26 @@ function renderDashboard(){
   el.innerHTML=rec.length?rec.map(icHTML).join(''):'<div class="empty" style="grid-column:span 2;padding:24px"><i class="ti ti-box" style="font-size:32px"></i><p style="font-size:12px">Belum ada koleksi</p></div>';
 }
 
+// ── SUMBER NILAI (ikon bendera) ──
+function srcFlag(it){
+  var s=String((it&&it.marketValSrc)||'');
+  if(/tokopedia/i.test(s))return '<span class="sflag" title="Nilai dari cek Tokopedia">🇮🇩</span>';
+  if(/ref\.?\s*jepang/i.test(s))return '<span class="sflag" title="Nilai dari referensi toko Jepang">🇯🇵</span>';
+  return '';
+}
+
 // ── ITEM HTML ──
 function icHTML(it){
   var e=EMO[it.category]||'📦';
   var img=it.mainPhotoId?'<img src="/_blob/'+it.mainPhotoId+'" alt="" onerror="this.style.display=\'none\'">':'';
   var h=it.health||'MISB';
-  return '<div class="ic" onclick="openDetail(\''+it.id+'\')"><div class="ic-img">'+img+'<span>'+e+'</span><div class="hb hb'+h+'">'+h+'</div>'+(it.mainPhotoId?'':'<div class="ph-add" data-pid="'+it.id+'"><i class="ti ti-camera"></i></div>')+'</div><div class="ic-info"><div class="ic-name">'+esc(it.name)+'</div><div class="ic-brand">'+esc(it.brand||'')+(it.scale?' · '+esc(it.scale):'')+'</div><div class="ic-foot"><div class="ic-val">'+fmt(it.marketVal||it.price||0)+'</div><div class="ic-loc">'+esc(it.storageName||'—')+'</div></div></div></div>';
+  return '<div class="ic" onclick="openDetail(\''+it.id+'\')"><div class="ic-img">'+img+'<span>'+e+'</span><div class="hb hb'+h+'">'+h+'</div>'+(it.mainPhotoId?'':'<div class="ph-add" data-pid="'+it.id+'"><i class="ti ti-camera"></i></div>')+'</div><div class="ic-info"><div class="ic-name">'+esc(it.name)+'</div><div class="ic-brand">'+esc(it.brand||'')+(it.scale?' · '+esc(it.scale):'')+'</div><div class="ic-foot"><div class="ic-val">'+srcFlag(it)+fmt(it.marketVal||it.price||0)+'</div><div class="ic-loc">'+esc(it.storageName||'—')+'</div></div></div></div>';
 }
 function liHTML(it){
   var e=EMO[it.category]||'📦';
   var img=it.mainPhotoId?'<img src="/_blob/'+it.mainPhotoId+'" alt="" onerror="this.style.display=\'none\'">':'';
   var roi=it.price&&it.marketVal?Math.round((it.marketVal-it.price)/it.price*100):null;
-  return '<div class="li" onclick="openDetail(\''+it.id+'\')"><div class="li-th">'+img+'<span>'+e+'</span>'+(it.mainPhotoId?'':'<div class="ph-add" data-pid="'+it.id+'"><i class="ti ti-camera"></i></div>')+'</div><div class="li-info"><div class="li-name">'+esc(it.name)+'</div><div class="li-sub">'+esc(it.brand||'')+(it.category?' · '+esc(it.category):'')+'</div><span class="badge '+(it.health==='MISB'||it.health==='MIB'?'bgn':it.health==='BIB'?'bam':'brd')+'">'+esc(it.health||'MISB')+'</span></div><div class="li-r"><div class="li-val">'+fmt(it.marketVal||it.price||0)+'</div>'+(roi!==null?'<span style="font-size:10px;font-weight:600;color:'+(roi>=0?'var(--gn)':'var(--rd)')+'">'+( roi>=0?'+':'')+roi+'%</span>':'')+'</div></div>';
+  return '<div class="li" onclick="openDetail(\''+it.id+'\')"><div class="li-th">'+img+'<span>'+e+'</span>'+(it.mainPhotoId?'':'<div class="ph-add" data-pid="'+it.id+'"><i class="ti ti-camera"></i></div>')+'</div><div class="li-info"><div class="li-name">'+esc(it.name)+'</div><div class="li-sub">'+esc(it.brand||'')+(it.category?' · '+esc(it.category):'')+'</div><span class="badge '+(it.health==='MISB'||it.health==='MIB'?'bgn':it.health==='BIB'?'bam':'brd')+'">'+esc(it.health||'MISB')+'</span></div><div class="li-r"><div class="li-val">'+srcFlag(it)+fmt(it.marketVal||it.price||0)+'</div>'+(roi!==null?'<span style="font-size:10px;font-weight:600;color:'+(roi>=0?'var(--gn)':'var(--rd)')+'">'+( roi>=0?'+':'')+roi+'%</span>':'')+'</div></div>';
 }
 
 // ── COLLECTION ──
@@ -1464,9 +1475,9 @@ function openDetail(id){
     +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div><h3 style="font-size:16px;font-weight:700;margin-bottom:2px">'+esc(it.name)+'</h3><p style="font-size:12px;color:var(--t3)">'+esc(it.brand||'')+(it.category?' · '+esc(it.category):'')+'</p></div><div class="hb hb'+(it.health||'MISB')+'" style="position:static;width:28px;height:28px;font-size:13px">'+esc(it.health||'A')+'</div></div>'
     +'<div style="display:flex;gap:6px;margin-bottom:14px"><span class="badge bpu">'+esc(it.category||'')+'</span>'+(it.status?'<span class="badge bgn">'+esc(it.status)+'</span>':'')+(it.scale?'<span class="badge bam">'+esc(it.scale)+'</span>':'')+'</div>'
     +'<div class="dr"><span class="dk">Harga beli</span><span class="dv">'+fmt(it.price)+'</span></div>'
-    +'<div class="dr"><span class="dk">Nilai pasar</span><span class="dv" style="color:var(--gn)">'+fmt(it.marketVal||it.price||0)+(roi!==null?' ('+(roi>=0?'+':'')+roi+'%)':'')+'</span></div>'
+    +'<div class="dr"><span class="dk">Nilai pasar</span><span class="dv" style="color:var(--gn)">'+srcFlag(it)+fmt(it.marketVal||it.price||0)+(roi!==null?' ('+(roi>=0?'+':'')+roi+'%)':'')+'</span></div>'
     +'<div class="dr"><span class="dk">Nilai dicek</span><span class="dv">'+esc(fmtDT(it.marketValAt))+'</span></div>'
-    +(it.marketValSrc?'<div class="dr"><span class="dk">Sumber nilai</span><span class="dv" style="text-align:right;max-width:62%">'+esc(it.marketValSrc)+'</span></div>':'')
+    +(it.marketValSrc?'<div class="dr"><span class="dk">Sumber nilai</span><span class="dv" style="text-align:right;max-width:62%">'+srcFlag(it)+esc(it.marketValSrc)+'</span></div>':'')
     +'<div class="dr"><span class="dk">Lokasi</span><span class="dv">'+esc(it.storageName||'—')+'</span></div>'
     +'<div class="dr"><span class="dk">Tanggal beli</span><span class="dv">'+esc(it.buyDate||'—')+'</span></div>'
     +(it.notes?'<div class="dr" style="flex-direction:column;gap:4px"><span class="dk">Catatan</span><span class="dv" style="font-size:12px">'+esc(it.notes)+'</span></div>':'')
