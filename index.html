@@ -145,6 +145,21 @@ body{
 }
 .sbar input::placeholder{color:var(--t3);}
 .sbar i{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:16px;pointer-events:none;}
+.trc{margin:0 20px 16px;background:var(--s1);border:.5px solid var(--b2);border-radius:var(--r);padding:14px;}
+.trc-h{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;}
+.trc-v{font-size:20px;font-weight:700;color:var(--t1);}
+.trc-d{font-size:11px;font-weight:600;margin-top:2px;}
+.trc-chips{display:flex;gap:4px;}
+.trc-chip{font-size:10px;font-weight:600;padding:4px 8px;border-radius:99px;border:.5px solid var(--b2);color:var(--t3);cursor:pointer;background:transparent;}
+.trc-chip.on{background:var(--acb);color:var(--ac2);border-color:var(--ac);}
+.trc svg{display:block;width:100%;height:auto;}
+.trc-ax{display:flex;justify-content:space-between;font-size:9px;color:var(--t3);margin-top:2px;}
+.trc-lg{display:flex;gap:12px;font-size:10px;color:var(--t3);margin:8px 0 4px;}
+.trc-mv{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:10px;}
+.trc-mv h4{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:4px;}
+.trc-mi{display:flex;justify-content:space-between;gap:6px;font-size:11px;padding:3px 0;border-bottom:.5px solid var(--b2);cursor:pointer;}
+.trc-mi span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.trc-mi span:last-child{font-weight:600;white-space:nowrap;}
 .stit{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--t3);padding:0 20px;margin-bottom:8px;}
 .sec-hdr{display:flex;justify-content:space-between;align-items:center;padding:0 20px;margin-bottom:8px;}
 .see-all{font-size:12px;color:var(--ac2);cursor:pointer;}
@@ -390,6 +405,8 @@ select.fi option{background:var(--s2);}
     <div class="sc"><div class="sl">Modal beli</div><div class="sv" style="color:var(--am)" id="st-cost">—</div><div class="ss">investasi</div></div>
     <div class="sc"><div class="sl">ROI</div><div class="sv" style="color:var(--gn)" id="st-roi">—</div><div class="ss">gain/loss</div></div>
   </div>
+  <div class="stit">Tren nilai koleksi</div>
+  <div class="trc" id="dash-trend"></div>
   <div class="sec-hdr">
     <span class="stit" style="padding:0;margin:0">Terbaru</span>
     <span class="see-all" onclick="switchTab('collection')">Lihat semua</span>
@@ -1043,7 +1060,7 @@ async function init(){
   }
 
   if(db&&uid){
-    subItems();subLocs();subWishes();subEvents();
+    subItems();subLocs();subWishes();subEvents();subSnaps();
   }else{
     renderDashboard();
   }
@@ -1071,7 +1088,7 @@ function setLoginWarn(show,msg){
 function subItems(){
   db.collection('u/'+uid+'/items').orderBy('createdAt','desc').onSnapshot(function(snap){
     items=snap.docs.filter(function(d){return d.exists;}).map(function(d){return Object.assign({id:d.id},d.data());});
-    renderDashboard();renderCollection();renderHealth();
+    renderDashboard();renderTrend();snapSoon();renderCollection();renderHealth();
     renderStorTree();renderStorSum();renderSSet();refreshShelf();
   });
 }
@@ -1111,6 +1128,94 @@ function renderDashboard(){
   var el=document.getElementById('dash-recent');
   var rec=items.slice(0,6);
   el.innerHTML=rec.length?rec.map(icHTML).join(''):'<div class="empty" style="grid-column:span 2;padding:24px"><i class="ti ti-box" style="font-size:32px"></i><p style="font-size:12px">Belum ada koleksi</p></div>';
+}
+
+
+// ── RIWAYAT NILAI (snapshot harian) ──
+var snaps=[],snapsReady=false,snapBusy=false,snapTimer=null,trRange=90;
+function wibDay(){try{return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta'}).format(new Date());}catch(x){return new Date().toISOString().slice(0,10);}}
+function subSnaps(){
+  try{db.collection('u/'+uid+'/vsnap').onSnapshot(function(snap){
+    snaps=snap.docs.filter(function(d){return d.exists&&d.data().d;}).map(function(d){return d.data();}).sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:0;});
+    snapsReady=true;renderTrend();snapSoon();
+  });}catch(x){console.warn('vsnap',x);}
+}
+function snapSoon(){if(!snapsReady||!items.length)return;clearTimeout(snapTimer);snapTimer=setTimeout(saveSnap,4000);}
+async function saveSnap(){
+  if(!snapsReady||!items.length||snapBusy||!db||!uid)return;
+  var day=wibDay(),v={},total=0,cost=0,cats={};
+  items.forEach(function(i){var x=i.marketVal||i.price||0;v[i.id]=x;total+=x;cost+=i.price||0;var c=i.category||'Lainnya';cats[c]=(cats[c]||0)+x;});
+  var cur=snaps.find(function(q){return q.d===day;});
+  if(cur&&cur.total===total&&cur.cost===cost&&cur.n===items.length)return;
+  snapBusy=true;
+  try{await db.doc('u/'+uid+'/vsnap/'+day).set({d:day,n:items.length,total:total,cost:cost,cats:cats,v:v,at:new Date().toISOString()});}catch(e){console.warn('snap',e);}
+  snapBusy=false;
+}
+function snapAt(days){
+  if(!snaps.length)return null;
+  var t=new Date(wibDay()+'T00:00:00Z').getTime()-days*86400000,best=snaps[0];
+  for(var i=0;i<snaps.length;i++){if(new Date(snaps[i].d+'T00:00:00Z').getTime()<=t)best=snaps[i];}
+  return best;
+}
+function setTrRange(r){trRange=r;renderTrend();}
+function dShort(d){var p=d.split('-');return p[2]+'/'+p[1];}
+function sparkSVG(pts,w,h,col){
+  if(pts.length<2)return '';
+  var mn=Math.min.apply(null,pts),mx=Math.max.apply(null,pts);if(mx===mn){mx=mn+1;}
+  var pad=4,xs=(w-pad*2)/(pts.length-1);
+  var d=pts.map(function(y,i){return (i?'L':'M')+(pad+i*xs).toFixed(1)+' '+(h-pad-(y-mn)/(mx-mn)*(h-pad*2)).toFixed(1);}).join(' ');
+  return '<svg viewBox="0 0 '+w+' '+h+'" width="'+w+'" height="'+h+'"><path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+}
+function renderTrend(){
+  var el=document.getElementById('dash-trend');if(!el)return;
+  var cutoff=trRange?new Date(wibDay()+'T00:00:00Z').getTime()-trRange*86400000:0;
+  var ss=snaps.filter(function(q){return !trRange||new Date(q.d+'T00:00:00Z').getTime()>=cutoff;});
+  if(trRange&&ss.length<snaps.length&&snaps.length){var pi=snaps.length-ss.length-1;if(pi>=0)ss.unshift(snaps[pi]);}
+  var chips=[[30,'30H'],[90,'90H'],[365,'1T'],[0,'Semua']].map(function(c){return '<button class="trc-chip'+(trRange===c[0]?' on':'')+'" onclick="setTrRange('+c[0]+')">'+c[1]+'</button>';}).join('');
+  var cost=items.reduce(function(a,i){return a+(i.price||0);},0);
+  var val=items.reduce(function(a,i){return a+(i.marketVal||i.price||0);},0);
+  var pl=val-cost,plc=pl>=0?'var(--gn)':'var(--rd)';
+  var head='<div class="trc-h"><div><div class="trc-v">'+(val?'Rp '+Math.round(val).toLocaleString('id-ID'):'—')+'</div>';
+  var first=ss[0],last=ss[ss.length-1];
+  if(ss.length>=2){
+    var dl=val-first.total,pc=first.total?dl/first.total*100:0,c=dl>=0?'var(--gn)':'var(--rd)';
+    head+='<div class="trc-d" style="color:'+c+'">'+(dl>=0?'▲ +':'▼ −')+'Rp '+Math.abs(Math.round(dl)).toLocaleString('id-ID')+' ('+(dl>=0?'+':'−')+Math.abs(pc).toFixed(1)+'%) sejak '+dShort(first.d)+'</div>';
+  }
+  head+='<div class="trc-d" style="color:'+plc+'">Untung/rugi vs modal: '+(pl>=0?'+':'−')+'Rp '+Math.abs(Math.round(pl)).toLocaleString('id-ID')+'</div></div><div class="trc-chips">'+chips+'</div></div>';
+  var body='';
+  if(ss.length<2){
+    body='<div style="font-size:11px;color:var(--t3);padding:10px 0">Riwayat baru terkumpul '+snaps.length+' hari. Grafik muncul setelah minimal 2 hari data; snapshot disimpan otomatis tiap hari.</div>';
+  }else{
+    var W=320,H=110,pad=6,all=ss.map(function(q){return q.total;}).concat(ss.map(function(q){return q.cost;}));
+    var mn=Math.min.apply(null,all),mx=Math.max.apply(null,all);var span=mx-mn||1;mn-=span*0.08;mx+=span*0.08;span=mx-mn;
+    var xs=(W-pad*2)/(ss.length-1);
+    function line(k){return ss.map(function(q,i){return (i?'L':'M')+(pad+i*xs).toFixed(1)+' '+(H-pad-(q[k]-mn)/span*(H-pad*2)).toFixed(1);}).join(' ');}
+    var area=line('total')+' L'+(pad+(ss.length-1)*xs).toFixed(1)+' '+(H-pad)+' L'+pad+' '+(H-pad)+' Z';
+    body='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="height:110px"><path d="'+area+'" fill="var(--gn)" opacity=".10"/><path d="'+line('cost')+'" fill="none" stroke="var(--am)" stroke-width="1.4" stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/><path d="'+line('total')+'" fill="none" stroke="var(--gn)" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>'
+      +'<div class="trc-ax"><span>'+dShort(first.d)+'</span><span>'+dShort(last.d)+'</span></div>'
+      +'<div class="trc-lg"><span style="color:var(--gn)">━ Nilai pasar</span><span style="color:var(--am)">┄ Modal beli</span></div>';
+    var base=first.v||{},mv=[];
+    items.forEach(function(i){var b=base[i.id];if(b==null)return;var n=i.marketVal||i.price||0;if(n!==b)mv.push({it:i,d:n-b,p:b?(n-b)/b*100:0});});
+    var up=mv.filter(function(m){return m.d>0;}).sort(function(a,b){return b.d-a.d;}).slice(0,3);
+    var dn=mv.filter(function(m){return m.d<0;}).sort(function(a,b){return a.d-b.d;}).slice(0,3);
+    function col(arr,t){return '<div><h4>'+t+'</h4>'+(arr.length?arr.map(function(m){return '<div class="trc-mi" onclick="openDetail(\''+m.it.id+'\')"><span>'+esc(m.it.name)+'</span><span style="color:'+(m.d>0?'var(--gn)':'var(--rd)')+'">'+(m.d>0?'+':'−')+fmt(Math.abs(m.d)).replace('Rp ','')+'</span></div>';}).join(''):'<div style="font-size:11px;color:var(--t3)">—</div>')+'</div>';}
+    body+='<div class="trc-mv">'+col(up,'Top naik')+col(dn,'Top turun')+'</div>';
+    body+='<div style="font-size:10px;color:var(--t3);margin-top:8px">'+mv.length+' item berubah nilai sejak '+dShort(first.d)+'.</div>';
+  }
+  el.innerHTML=head+body;
+}
+function itemHist(it){
+  var pts=[];
+  snaps.forEach(function(q){if(q.v&&q.v[it.id]!=null)pts.push({d:q.d,v:q.v[it.id]});});
+  return pts;
+}
+function histRow(it){
+  var h=itemHist(it);if(h.length<2)return '';
+  var ch=[h[0]];for(var i=1;i<h.length;i++){if(h[i].v!==h[i-1].v)ch.push(h[i]);}
+  var first=h[0],cur=it.marketVal||it.price||0,dl=cur-first.v;
+  var lastCh=ch.length>1?ch[ch.length-1]:null;
+  return '<div class="dr" style="flex-direction:column;align-items:stretch;gap:6px"><div style="display:flex;justify-content:space-between"><span class="dk">Riwayat nilai</span><span class="dv" style="color:'+(dl>=0?'var(--gn)':'var(--rd)')+'">'+(dl===0?'stabil':(dl>0?'▲ +':'▼ −')+fmt(Math.abs(dl)))+' sejak '+dShort(first.d)+'</span></div>'
+    +(ch.length>1?sparkSVG(h.map(function(x){return x.v;}).concat([cur]),300,44,dl>=0?'var(--gn)':'var(--rd)')+'<div style="font-size:10px;color:var(--t3)">Terakhir berubah '+dShort(lastCh.d)+' · '+ch.length+' titik perubahan tercatat</div>':'<div style="font-size:10px;color:var(--t3)">Belum ada perubahan nilai ('+h.length+' hari tercatat)</div>')+'</div>';
 }
 
 // ── SUMBER NILAI (ikon bendera) ──
@@ -1491,6 +1596,7 @@ function openDetail(id){
     +'<div style="display:flex;gap:6px;margin-bottom:14px"><span class="badge bpu">'+esc(it.category||'')+'</span>'+(it.status?'<span class="badge bgn">'+esc(it.status)+'</span>':'')+(it.scale?'<span class="badge bam">'+esc(it.scale)+'</span>':'')+'</div>'
     +'<div class="dr"><span class="dk">Harga beli</span><span class="dv">'+fmt(it.price)+'</span></div>'
     +'<div class="dr"><span class="dk">Nilai pasar</span><span class="dv" style="color:var(--gn)">'+srcFlag(it)+fmt(it.marketVal||it.price||0)+(roi!==null?' ('+(roi>=0?'+':'')+roi+'%)':'')+'</span></div>'
+    +histRow(it)
     +'<div class="dr"><span class="dk">Nilai dicek</span><span class="dv">'+esc(fmtDT(it.marketValAt))+'</span></div>'
     +(it.marketValSrc?'<div class="dr"><span class="dk">Sumber nilai</span><span class="dv" style="text-align:right;max-width:62%">'+srcFlag(it)+esc(it.marketValSrc)+'</span></div>':'')
     +'<div class="dr"><span class="dk">Lokasi</span><span class="dv">'+esc(it.storageName||'—')+'</span></div>'
