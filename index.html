@@ -219,6 +219,9 @@ select.fi option{background:var(--s2);}
 .ic-brand{font-size:11px;color:var(--t3);margin-bottom:5px;}
 .ic-foot{display:flex;justify-content:space-between;align-items:center;}
 .ic-val{font-size:12px;font-weight:600;color:var(--gn);}
+.ev-th{position:relative;width:72px;height:92px;border-radius:8px;overflow:hidden;flex-shrink:0;cursor:zoom-in;background:var(--s2);box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.ev-th img{width:100%;height:100%;object-fit:cover;display:block}
+.ev-zoom{position:absolute;right:3px;bottom:3px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px}
 .sflag{font-size:12px;margin-right:3px;vertical-align:-1px;line-height:1}
 .src-legend{display:flex;gap:12px;padding:0 20px 8px;font-size:11px;color:var(--t3)}
 .ic-loc{font-size:10px;color:var(--t3);}
@@ -889,6 +892,18 @@ select.fi option{background:var(--s2);}
     <div id="va-status" style="font-size:11px;color:var(--t3);margin-bottom:14px;min-height:14px"></div>
     <button class="btn-s" style="margin-bottom:10px" onclick="openTpPrompt(tpOldest(25))"><i class="ti ti-search" style="vertical-align:-2px;margin-right:4px"></i>Cek Tokopedia 25 item terlama (lewat Claude di perangkatmu)</button>
     <div style="display:flex;gap:8px"><button class="btn-s" style="flex:1" id="va-close" onclick="vaCancel()">Tutup</button><button class="btn-p" style="flex:1" id="va-go" onclick="runValAll()">Mulai</button></div>
+  </div>
+</div>
+
+<div class="mo" id="poster-m" style="align-items:stretch;background:rgba(0,0,0,.97);z-index:250" onclick="if(event.target===this)closeM('poster-m')">
+  <div style="width:100%;max-width:430px;height:100%;display:flex;flex-direction:column;color:#fff">
+    <div style="display:flex;align-items:center;gap:8px;padding:calc(12px + env(safe-area-inset-top)) 16px 8px">
+      <div id="pm-title" style="flex:1;font-size:13px;font-weight:700;line-height:1.3"></div>
+      <div class="ib" onclick="pmZoom()" title="Perbesar"><i class="ti ti-search"></i></div>
+      <div class="ib" onclick="closeM('poster-m')" title="Tutup"><i class="ti ti-x"></i></div>
+    </div>
+    <div id="pm-wrap" style="flex:1;min-height:0;overflow:auto;display:flex;align-items:center;justify-content:center;-webkit-overflow-scrolling:touch;padding:0 8px"><img id="pm-img" alt="Poster event" onclick="pmZoom()" style="max-width:100%;max-height:100%;object-fit:contain"></div>
+    <div id="pm-hint" style="text-align:center;font-size:11px;opacity:.7;padding:8px 16px calc(12px + env(safe-area-inset-bottom))"></div>
   </div>
 </div>
 
@@ -2006,10 +2021,32 @@ function evLinks(e){
     return '<a href="'+esc(x[2])+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:14px;background:var(--acb);color:var(--ac2);font-size:11px;font-weight:600;text-decoration:none"><i class="ti ti-'+x[1]+'" style="font-size:13px"></i>'+x[0]+'</a>';
   }).join('')+'</div>';
 }
+var evShown=[];
+function evThumb(e){
+  if(!e.poster)return '<div style="width:48px;height:48px;border-radius:8px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">'+e.ico+'</div>';
+  return '<div class="ev-th" onclick="openPoster(\''+String(e.id||'').replace(/[^A-Za-z0-9_-]/g,'')+'\')" title="Ketuk untuk memperbesar"><img src="/_blob/'+esc(e.poster)+'" alt="" loading="lazy" onerror="this.parentNode.style.display=\'none\'"><span class="ev-zoom"><i class="ti ti-search"></i></span></div>';
+}
+var pmZoomed=false;
+function openPoster(id){
+  var e=evShown.find(function(x){return String(x.id||'').replace(/[^A-Za-z0-9_-]/g,'')===id;});
+  if(!e||!e.poster)return;
+  document.getElementById('pm-title').textContent=e.t+' · '+evDate(e);
+  document.getElementById('pm-img').src='/_blob/'+e.poster;
+  pmZoomed=false;pmApply();
+  openM('poster-m');
+}
+function pmApply(){
+  var im=document.getElementById('pm-img'),w=document.getElementById('pm-wrap');
+  if(pmZoomed){im.style.cssText='display:block;max-width:none;max-height:none;width:240%;margin:0 auto';w.style.alignItems='flex-start';w.style.justifyContent='flex-start';}
+  else{im.style.cssText='display:block;max-width:100%;max-height:100%;object-fit:contain';w.style.alignItems='center';w.style.justifyContent='center';w.scrollTop=0;w.scrollLeft=0;}
+  document.getElementById('pm-hint').textContent=pmZoomed?'Geser untuk melihat detail · ketuk gambar untuk kembali':'Ketuk gambar untuk memperbesar';
+}
+function pmZoom(){pmZoomed=!pmZoomed;pmApply();}
 function renderEvents(){
   var today=new Date();today.setHours(0,0,0,0);var SRC=(dbEvents&&dbEvents.length)?dbEvents:EVENTS;SRC.forEach(function(e){e.days=evDays(e);});var ev=SRC.filter(function(e){return new Date(e.e+'T23:59:59')>=today&&(curRad>=9999||e.c===curCity||e.km<=curRad);}).sort(function(a,b){return a.days-b.days;});
   var c=document.getElementById('ev-count');if(c)c.textContent=ev.length+' event ditemukan';
   var el=document.getElementById('ev-list');if(!el)return;
+  evShown=ev;
   var MN=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];var lastM='';
   el.innerHTML=ev.map(function(e){
     var sd=new Date(e.s+'T00:00:00');if(sd<today)sd=today;
@@ -2020,7 +2057,7 @@ function renderEvents(){
     var ug=e.days<=7?'var(--rd)':e.days<=21?'var(--am)':'var(--t3)';
     var ugb=e.days<=7?'var(--rdb)':e.days<=21?'var(--amb)':'var(--s3)';
     var dt=e.days<0?'Berlangsung':e.days===0?'Hari ini!':e.days===1?'Besok!':e.days+' hari';
-    var card='<div class="evcard">'+(e.pri?'<div style="background:var(--acb);padding:3px 12px;font-size:10px;font-weight:700;color:var(--ac2)">⭐ FEATURED</div>':'')+'<div style="padding:12px;display:flex;gap:12px;align-items:center"><div style="width:48px;height:48px;border-radius:8px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">'+e.ico+'</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;margin-bottom:2px">'+esc(e.t)+'</div><div style="font-size:11px;color:var(--t3);margin-bottom:4px">'+esc(e.v)+' · '+evDate(e)+(e.price&&e.price!=='-'?' · '+esc(e.price):'')+'</div><div style="display:flex;flex-wrap:wrap;gap:4px">'+e.tags.map(function(t){return '<span class="badge bpu" style="font-size:9px">'+t+'</span>';}).join('')+'</div>'+evLinks(e)+'</div><div style="background:'+ugb+';color:'+ug+';padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700;flex-shrink:0">'+dt+'</div></div></div>';
+    var card='<div class="evcard">'+(e.pri?'<div style="background:var(--acb);padding:3px 12px;font-size:10px;font-weight:700;color:var(--ac2)">⭐ FEATURED</div>':'')+'<div style="padding:12px;display:flex;gap:12px;align-items:center">'+evThumb(e)+'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;margin-bottom:2px">'+esc(e.t)+'</div><div style="font-size:11px;color:var(--t3);margin-bottom:4px">'+esc(e.v)+' · '+evDate(e)+(e.price&&e.price!=='-'?' · '+esc(e.price):'')+'</div><div style="display:flex;flex-wrap:wrap;gap:4px">'+e.tags.map(function(t){return '<span class="badge bpu" style="font-size:9px">'+t+'</span>';}).join('')+'</div>'+evLinks(e)+'</div><div style="background:'+ugb+';color:'+ug+';padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700;flex-shrink:0">'+dt+'</div></div></div>';
     return sep+card;
   }).join('');
 }
