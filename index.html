@@ -2001,7 +2001,7 @@ function evLinks(e){
   if(ig)L.push(['Instagram','camera',ig]);
   if(fb)L.push(['Facebook','group',fb]);
   if(!L.length&&sr)L.push(['Info','info',sr]);
-  if(!L.length)return '';
+  if(!L.length)return '<div style="margin-top:8px;font-size:11px;color:var(--t3);display:flex;align-items:center;gap:4px"><i class="ti ti-info" style="font-size:13px"></i>Belum ada link resmi untuk event ini</div>';
   return '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">'+L.map(function(x){
     return '<a href="'+esc(x[2])+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:14px;background:var(--acb);color:var(--ac2);font-size:11px;font-weight:600;text-decoration:none"><i class="ti ti-'+x[1]+'" style="font-size:13px"></i>'+x[0]+'</a>';
   }).join('')+'</div>';
