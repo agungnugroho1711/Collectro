@@ -416,7 +416,6 @@ select.fi option{background:var(--s2);}
     <i class="ti ti-chevron-right" style="color:var(--t3)"></i>
   </div>
   <div id="wl-warn" style="display:none;margin:10px 20px 0;background:var(--gnb);border:.5px solid var(--gn);border-radius:var(--rs);padding:10px 12px;font-size:12px;align-items:center;gap:10px;cursor:pointer" onclick="switchDisc(null,'wishlist');switchTab('discover')"></div>
-  <div id="bk-warn" style="display:none;margin:10px 20px 0;background:var(--amb);border:.5px solid var(--am);border-radius:var(--rs);padding:10px 12px;font-size:12px;align-items:center;gap:10px"></div>
   <div class="dc">
     <div class="dc-row"><i class="ti ti-copy-check" style="font-size:18px;color:var(--ac2)"></i><input type="text" id="dc-q" placeholder="Cek duplikat: ketik nama barang yang ditaksir…" oninput="dcRun(this.value)" autocomplete="off"></div>
     <div id="dc-res"></div>
@@ -644,6 +643,7 @@ select.fi option{background:var(--s2);}
         <button class="btn-s" onclick="doExport('csv')"><i class="ti ti-download" style="vertical-align:-2px;margin-right:4px"></i>Download CSV</button>
       </div>
     </div>
+    <div id="bk-warn" style="display:none;margin:0 0 12px;background:var(--amb);border:.5px solid var(--am);border-radius:var(--rs);padding:10px 12px;font-size:12px;align-items:center;gap:10px"></div>
     <div class="card" style="margin-bottom:12px;overflow:hidden" id="rt-card">
       <div style="padding:14px;border-bottom:.5px solid var(--b1)"><div style="font-size:13px;font-weight:700;margin-bottom:2px"><i class="ti ti-player-play" style="vertical-align:-2px;margin-right:4px;color:var(--ac2)"></i>Jalankan scheduler sekarang</div><div style="font-size:11px;color:var(--t3)">Memicu routine di cloud sekali jalan. Hasil masuk ke data dan muncul di aplikasi dalam beberapa menit; setiap run memakai kuota langganan.</div></div>
       <div style="padding:14px;display:flex;flex-direction:column;gap:8px" id="rt-list"></div>
@@ -1385,7 +1385,7 @@ function bkStatus(){
   var days=dl?(Date.now()-new Date(dl).getTime())/864e5:999,snz=Number(bkLS('cr_bkSnooze')||0);
   if(items.length&&days>14&&Date.now()>snz){
     w.style.display='flex';
-    w.innerHTML='<i class="ti ti-shield-exclamation" style="font-size:20px;color:var(--am)"></i><div style="flex:1">'+(dl?'Backup unduhan terakhir '+Math.floor(days)+' hari lalu.':'Belum pernah mengunduh backup ke perangkat.')+'</div><button class="btn-s" style="padding:6px 10px;font-size:11px" onclick="switchDisc(null,\'export\');switchTab(\'discover\')">Backup</button><i class="ti ti-x" style="cursor:pointer;color:var(--t3)" onclick="bkLS(\'cr_bkSnooze\',String(Date.now()+3*864e5));bkStatus()"></i>';
+    w.innerHTML='<i class="ti ti-shield-exclamation" style="font-size:20px;color:var(--am)"></i><div style="flex:1">'+(dl?'Backup unduhan terakhir '+Math.floor(days)+' hari lalu.':'Belum pernah mengunduh backup ke perangkat.')+'</div><i class="ti ti-x" style="cursor:pointer;color:var(--t3)" onclick="bkLS(\'cr_bkSnooze\',String(Date.now()+3*864e5));bkStatus()"></i>';
   }else w.style.display='none';
 }
 async function bkDownload(withPhotos){
