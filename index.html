@@ -411,6 +411,7 @@ select.fi option{background:var(--s2);}
     <div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--ac2)">Scan barang</div><div style="font-size:11px;color:var(--t3)">Foto → info &amp; estimasi harga → Koleksi / Wishlist</div></div>
     <i class="ti ti-chevron-right" style="color:var(--t3)"></i>
   </div>
+  <div id="bk-warn" style="display:none;margin:10px 20px 0;background:var(--amb);border:.5px solid var(--am);border-radius:var(--rs);padding:10px 12px;font-size:12px;align-items:center;gap:10px"></div>
   <div class="dc">
     <div class="dc-row"><i class="ti ti-copy-check" style="font-size:18px;color:var(--ac2)"></i><input type="text" id="dc-q" placeholder="Cek duplikat: ketik nama barang yang ditaksir…" oninput="dcRun(this.value)" autocomplete="off"></div>
     <div id="dc-res"></div>
@@ -638,6 +639,18 @@ select.fi option{background:var(--s2);}
         <button class="btn-s" onclick="doExport('csv')"><i class="ti ti-download" style="vertical-align:-2px;margin-right:4px"></i>Download CSV</button>
       </div>
     </div>
+    <div class="card" style="margin-bottom:12px;overflow:hidden" id="bk-card">
+      <div style="padding:14px;border-bottom:.5px solid var(--b1)"><div style="font-size:13px;font-weight:700;margin-bottom:2px"><i class="ti ti-shield-check" style="vertical-align:-2px;margin-right:4px;color:var(--gn)"></i>Backup &amp; Pulihkan</div><div style="font-size:11px;color:var(--t3)">Cadangan seluruh data (koleksi, lokasi, wishlist, event, riwayat nilai). Backup otomatis tersimpan di database tiap 7 hari (4 salinan terakhir); unduhan ke perangkat melindungi bila artifact terhapus.</div></div>
+      <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
+        <div id="bk-st" style="font-size:11px;color:var(--t3);line-height:1.6"></div>
+        <button class="btn-p" onclick="bkDownload(false)"><i class="ti ti-database-export" style="vertical-align:-2px;margin-right:4px"></i>Unduh backup data (.json)</button>
+        <button class="btn-s" onclick="bkDownload(true)"><i class="ti ti-file-zip" style="vertical-align:-2px;margin-right:4px"></i>Unduh backup + foto (.zip)</button>
+        <button class="btn-s" onclick="document.getElementById('fi-bk').click()"><i class="ti ti-database-import" style="vertical-align:-2px;margin-right:4px"></i>Pulihkan dari file…</button>
+        <button class="btn-s" onclick="bkOpenList()"><i class="ti ti-history" style="vertical-align:-2px;margin-right:4px"></i>Pulihkan dari backup otomatis…</button>
+        <button class="btn-s" onclick="bkRun('auto',true)"><i class="ti ti-refresh" style="vertical-align:-2px;margin-right:4px"></i>Buat backup otomatis sekarang</button>
+        <input type="file" id="fi-bk" accept=".json,.zip" style="display:none" onchange="bkPickFile(this)">
+      </div>
+    </div>
     <div class="mi" id="uid-row" style="display:none;margin-bottom:20px" onclick="copyUid()"><i class="ti ti-info"></i><span style="min-width:0"><span style="display:block;font-size:11px;color:var(--t3)">ID akun (tap untuk salin)</span><span id="uid-val" style="display:block;font-size:12px;font-family:monospace;word-break:break-all"></span></span><i class="ti ti-checkbox arr"></i></div>
   </div>
 </div>
@@ -858,6 +871,14 @@ select.fi option{background:var(--s2);}
   </div>
 </div>
 
+<div class="mo" id="bk-m" onclick="if(event.target===this&&!bkBusy)closeM('bk-m')">
+  <div class="ms" style="max-height:88vh;overflow-y:auto">
+    <div class="mh"></div>
+    <div class="mt"><i class="ti ti-shield-check" style="vertical-align:-3px;margin-right:6px"></i>Pulihkan data</div>
+    <div id="bk-body"></div>
+    <button class="btn-s" id="bk-close" style="margin-top:12px;width:100%" onclick="closeM('bk-m')">Tutup</button>
+  </div>
+</div>
 <div class="mo" id="import-m" onclick="if(event.target===this)closeM('import-m')">
   <div class="ms">
     <div class="mh"></div>
@@ -1076,7 +1097,7 @@ async function init(){
   }
 
   if(db&&uid){
-    subItems();subLocs();subWishes();subEvents();subSnaps();
+    subItems();subLocs();subWishes();subEvents();subSnaps();subBak();
   }else{
     renderDashboard();
   }
@@ -1104,7 +1125,7 @@ function setLoginWarn(show,msg){
 function subItems(){
   db.collection('u/'+uid+'/items').orderBy('createdAt','desc').onSnapshot(function(snap){
     items=snap.docs.filter(function(d){return d.exists;}).map(function(d){return Object.assign({id:d.id},d.data());});
-    renderDashboard();renderTrend();snapSoon();renderCollection();renderHealth();
+    renderDashboard();renderTrend();snapSoon();bakMaybe();bkStatus();renderCollection();renderHealth();
     renderStorTree();renderStorSum();renderSSet();refreshShelf();
   });
 }
@@ -1307,6 +1328,224 @@ function dupFormWarn(){
     var v=dupVerdict(document.getElementById('f-name').value);
     el.innerHTML=v&&v.kind!=='none'?dupHTML(v):'';
   },350);
+}
+
+
+// ── BACKUP & PULIHKAN ──
+var bkBusy=false,bakList=[],bakReady=false,bakDone=false,bakTimer=null,bkPending=null;
+function bkLS(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v);}catch(e){return null;}}
+function bkCols(withHist){
+  var c={items:items,locations:locs,wishlist:wishes,events:dbEvents||[]};
+  if(withHist)c.vsnap=snaps;
+  var o={};Object.keys(c).forEach(function(k){o[k]=JSON.parse(JSON.stringify(c[k]));});
+  return o;
+}
+function bkPhotoIds(cols){
+  var ids={};
+  (cols.items||[]).forEach(function(i){if(i.mainPhotoId)ids[i.mainPhotoId]=1;});
+  (cols.wishlist||[]).forEach(function(i){if(i.mainPhotoId)ids[i.mainPhotoId]=1;});
+  (cols.events||[]).forEach(function(i){if(i.poster)ids[i.poster]=1;});
+  return Object.keys(ids);
+}
+function bkCounts(cols){var o={};Object.keys(cols).forEach(function(k){o[k]=cols[k].length;});return o;}
+function bkStamp(){return new Date().toISOString().replace(/[-:]/g,'').slice(0,13);}
+function bkStatus(){
+  var el=document.getElementById('bk-st');
+  var a=bakList.filter(function(m){return m.tag==='auto';})[0],dl=bkLS('cr_lastdl');
+  if(el)el.innerHTML='Backup otomatis terakhir: <b>'+(a?esc(fmtDT(a.at))+' ('+(a.counts&&a.counts.items||0)+' item)':'belum ada')+'</b><br>Unduhan terakhir ke perangkat: <b>'+(dl?esc(fmtDT(dl)):'belum pernah')+'</b>';
+  var w=document.getElementById('bk-warn');if(!w)return;
+  var days=dl?(Date.now()-new Date(dl).getTime())/864e5:999,snz=Number(bkLS('cr_bkSnooze')||0);
+  if(items.length&&days>14&&Date.now()>snz){
+    w.style.display='flex';
+    w.innerHTML='<i class="ti ti-shield-exclamation" style="font-size:20px;color:var(--am)"></i><div style="flex:1">'+(dl?'Backup unduhan terakhir '+Math.floor(days)+' hari lalu.':'Belum pernah mengunduh backup ke perangkat.')+'</div><button class="btn-s" style="padding:6px 10px;font-size:11px" onclick="switchDisc(null,\'export\');switchTab(\'discover\')">Backup</button><i class="ti ti-x" style="cursor:pointer;color:var(--t3)" onclick="bkLS(\'cr_bkSnooze\',String(Date.now()+3*864e5));bkStatus()"></i>';
+  }else w.style.display='none';
+}
+async function bkDownload(withPhotos){
+  if(bkBusy)return;
+  if(!downloads){toast('Fitur unduh tidak tersedia');return;}
+  bkBusy=true;
+  try{
+    var cols=bkCols(true),day=wibDay();
+    var obj={app:'collectro',v:1,at:new Date().toISOString(),counts:bkCounts(cols),collections:cols};
+    if(!withPhotos){
+      await downloads.save({filename:'collectro-backup-'+day+'.json',data:new Blob([JSON.stringify(obj)],{type:'application/json'})});
+    }else{
+      var JZ=await bkJSZip();
+      var ids=bkPhotoIds(cols),zip=new JZ(),map={},done=0,fail=0,q=ids.slice();
+      toast('Mengambil '+ids.length+' foto…');
+      async function w(){
+        while(q.length){
+          var id=q.shift();
+          try{
+            var r=await fetch('/_blob/'+id);if(!r.ok)throw new Error('http '+r.status);
+            var b=await r.blob(),ext=/png/.test(b.type)?'png':/webp/.test(b.type)?'webp':/gif/.test(b.type)?'gif':/jpe?g/.test(b.type)?'jpg':'bin';
+            map[id]='photos/'+id+'.'+ext;zip.file(map[id],b);
+          }catch(e){fail++;}
+          done++;if(done%20===0)toast('Foto '+done+'/'+ids.length+'…');
+        }
+      }
+      await Promise.all([w(),w(),w(),w()]);
+      obj.photos=map;zip.file('backup.json',JSON.stringify(obj));
+      toast('Menyusun ZIP…');
+      var blob=await zip.generateAsync({type:'blob',compression:'STORE'});
+      await downloads.save({filename:'collectro-backup-'+day+'.zip',data:blob});
+      if(fail)toast('ZIP selesai; '+fail+' foto gagal diambil');
+    }
+    bkLS('cr_lastdl',new Date().toISOString());bkStatus();
+    toast('Backup diunduh ✓');
+  }catch(e){console.warn('bk dl',e);toast('Gagal membuat backup');}
+  bkBusy=false;
+}
+function bkJSZip(){
+  return new Promise(function(res,rej){
+    if(window.JSZip)return res(window.JSZip);
+    var sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    sc.onload=function(){window.JSZip?res(window.JSZip):rej(new Error('jszip'));};sc.onerror=function(){rej(new Error('jszip load'));};
+    document.head.appendChild(sc);
+  });
+}
+// — backup otomatis (di database) —
+function subBak(){
+  try{db.collection('u/'+uid+'/bak').onSnapshot(function(snap){
+    bakList=snap.docs.filter(function(d){return d.exists&&d.data().kind==='meta';}).map(function(d){return Object.assign({id:d.id},d.data());}).sort(function(a,b){return a.at<b.at?1:a.at>b.at?-1:0;});
+    bakReady=true;bkStatus();bakMaybe();
+  });}catch(x){console.warn('bak',x);}
+}
+function bakMaybe(){
+  if(bakDone||!bakReady||!items.length||!db||!uid)return;
+  var a=bakList.filter(function(m){return m.tag==='auto';})[0];
+  bakDone=true;
+  if(!a||Date.now()-new Date(a.at).getTime()>7*864e5){clearTimeout(bakTimer);bakTimer=setTimeout(function(){bkRun('auto',false);},9000);}
+}
+function bkChunk(rows){
+  var out=[],cur=[],len=0;
+  rows.forEach(function(r){var l=JSON.stringify(r).length;if(cur.length&&len+l>130000){out.push(cur);cur=[];len=0;}cur.push(r);len+=l;});
+  if(cur.length||!out.length)out.push(cur);
+  return out;
+}
+async function bkRun(tag,manual){
+  if(bkBusy&&!manual&&tag==='auto')return;
+  if(!db||!uid||!items.length){if(manual)toast('Data belum siap');return;}
+  var wasBusy=bkBusy;bkBusy=true;
+  try{
+    var cols=bkCols(false),stamp=bkStamp()+(tag==='pre'?'p':''),parts=[];
+    var names=Object.keys(cols);
+    for(var i=0;i<names.length;i++){
+      var ch=bkChunk(cols[names[i]]);
+      for(var k=0;k<ch.length;k++){
+        var id=stamp+'_'+names[i]+'_'+k;
+        await db.doc('u/'+uid+'/bakd/'+id).set({kind:'part',col:names[i],k:k,rows:ch[k]});
+        parts.push(id);
+      }
+    }
+    await db.doc('u/'+uid+'/bak/'+stamp).set({kind:'meta',tag:tag,at:new Date().toISOString(),counts:bkCounts(cols),parts:parts});
+    // retensi: auto 4 terbaru, pre 2 terbaru
+    var all=bakList.filter(function(m){return m.id!==stamp;});
+    var keepN={auto:tag==='auto'?3:4,pre:tag==='pre'?1:2};
+    var seen={};
+    for(var j=0;j<all.length;j++){
+      var m=all[j];seen[m.tag]=(seen[m.tag]||0)+1;
+      if(seen[m.tag]>(keepN[m.tag]||3)){
+        for(var q=0;q<(m.parts||[]).length;q++){try{await db.doc('u/'+uid+'/bakd/'+m.parts[q]).delete();}catch(e){}}
+        try{await db.doc('u/'+uid+'/bak/'+m.id).delete();}catch(e){}
+      }
+    }
+    if(manual)toast('Backup otomatis dibuat ✓');
+  }catch(e){console.warn('bak run',e);if(manual)toast('Backup gagal: '+(e&&e.message||e));}
+  bkBusy=wasBusy;
+}
+// — pulihkan —
+function bkOpenList(){
+  var h='<div style="font-size:12px;color:var(--t3);margin-bottom:10px">Pilih salinan untuk dipulihkan. Pemulihan menimpa dokumen dengan ID yang sama dan tidak menghapus apa pun. Foto tidak ikut backup otomatis (foto tetap di penyimpanan aplikasi).</div>';
+  if(!bakList.length)h+='<div class="empty" style="padding:20px"><p style="font-size:12px">Belum ada backup otomatis.</p></div>';
+  bakList.forEach(function(m){
+    h+='<div class="li" style="cursor:pointer" onclick="bkLoadMeta(\''+m.id+'\')"><div class="li-info"><div class="li-name">'+esc(fmtDT(m.at))+'</div><div class="li-sub">'+(m.tag==='pre'?'Sebelum pemulihan · ':'Otomatis · ')+(m.counts&&m.counts.items||0)+' item, '+(m.counts&&m.counts.wishlist||0)+' wishlist, '+(m.counts&&m.counts.events||0)+' event</div></div><i class="ti ti-chevron-right" style="color:var(--t3)"></i></div>';
+  });
+  document.getElementById('bk-body').innerHTML=h;openM('bk-m');
+}
+async function bkLoadMeta(id){
+  var m=bakList.find(function(x){return x.id===id;});if(!m)return;
+  document.getElementById('bk-body').innerHTML='<div style="text-align:center;padding:20px;font-size:13px;color:var(--t3)">Membaca backup…</div>';
+  try{
+    var cols={};
+    for(var i=0;i<m.parts.length;i++){
+      var d=await db.doc('u/'+uid+'/bakd/'+m.parts[i]).get();if(!d.exists)throw new Error('bagian hilang: '+m.parts[i]);
+      var x=d.data();cols[x.col]=(cols[x.col]||[]).concat(x.rows||[]);
+    }
+    bkPending={cols:cols,zip:null,photos:null,label:'Backup otomatis '+fmtDT(m.at)};bkPreview();
+  }catch(e){document.getElementById('bk-body').innerHTML='<div style="color:var(--rd);font-size:12px">Gagal membaca: '+esc(e&&e.message||e)+'</div>';}
+}
+async function bkPickFile(inp){
+  var f=inp.files&&inp.files[0];inp.value='';if(!f)return;
+  document.getElementById('bk-body').innerHTML='<div style="text-align:center;padding:20px;font-size:13px;color:var(--t3)">Membaca file…</div>';openM('bk-m');
+  try{
+    var obj,zip=null;
+    if(/\.zip$/i.test(f.name)){
+      var JZ=await bkJSZip();zip=await JZ.loadAsync(f);
+      var bj=zip.file('backup.json');if(!bj)throw new Error('backup.json tidak ada di ZIP');
+      obj=JSON.parse(await bj.async('string'));
+    }else obj=JSON.parse(await f.text());
+    if(!obj||obj.app!=='collectro'||!obj.collections)throw new Error('Bukan file backup Collectro');
+    bkPending={cols:obj.collections,zip:zip,photos:obj.photos||null,label:f.name};bkPreview();
+  }catch(e){document.getElementById('bk-body').innerHTML='<div style="color:var(--rd);font-size:12px">Gagal: '+esc(e&&e.message||e)+'</div>';}
+}
+function bkLive(col){return {items:items,locations:locs,wishlist:wishes,events:dbEvents||[],vsnap:snaps}[col]||[];}
+var BK_LBL={items:'Item koleksi',locations:'Lokasi',wishlist:'Wishlist',events:'Event',vsnap:'Riwayat nilai (hari)'};
+function bkPreview(){
+  var c=bkPending.cols,rows='',tot=0;
+  Object.keys(BK_LBL).forEach(function(k){
+    var a=c[k];if(!a||!a.length)return;
+    var live={};bkLive(k).forEach(function(x){live[x.id||x.d]=1;});
+    var ow=a.filter(function(x){return live[x.id||x.d];}).length;tot+=a.length;
+    rows+='<div class="dr"><span class="dk">'+BK_LBL[k]+'</span><span class="dv">'+a.length+' <span style="color:var(--t3);font-size:11px">('+ow+' menimpa, '+(a.length-ow)+' baru)</span></span></div>';
+  });
+  var ph=bkPending.zip&&bkPending.photos?Object.keys(bkPending.photos).length:0;
+  document.getElementById('bk-body').innerHTML='<div style="font-size:12px;color:var(--t3);margin-bottom:8px">Sumber: '+esc(bkPending.label)+'</div>'+rows
+    +(ph?'<div class="dr"><span class="dk">Foto di ZIP</span><span class="dv">'+ph+' <span style="color:var(--t3);font-size:11px">(hanya yang hilang diunggah ulang)</span></span></div>':'')
+    +'<div style="font-size:11px;color:var(--am);background:var(--amb);padding:8px 10px;border-radius:var(--rs);margin:12px 0">Dokumen dengan ID sama akan ditimpa dengan isi backup. Dokumen lain tidak dihapus. Salinan pengaman otomatis dibuat dulu.</div>'
+    +'<div id="bk-prog" style="font-size:12px;color:var(--t3);margin-bottom:8px"></div>'
+    +'<button class="btn-p" id="bk-go" style="width:100%" onclick="bkRestore()"'+(tot?'':' disabled')+'>Pulihkan '+tot+' dokumen</button>';
+}
+async function bkRestore(){
+  if(bkBusy||!bkPending)return;bkBusy=true;
+  var go=document.getElementById('bk-go'),pg=document.getElementById('bk-prog');go.disabled=true;
+  function say(t){pg.textContent=t;}
+  try{
+    say('Membuat salinan pengaman…');bkBusy=false;await bkRun('pre',false);bkBusy=true;
+    var c=bkPending.cols,map={};
+    if(bkPending.zip&&bkPending.photos&&assets){
+      var ids=Object.keys(bkPending.photos),n=0;
+      for(var i=0;i<ids.length;i++){
+        say('Foto '+(i+1)+'/'+ids.length+'…');
+        var ok=false;try{var r=await fetch('/_blob/'+ids[i]);ok=r.ok;}catch(e){}
+        if(ok)continue;
+        try{
+          var fz=bkPending.zip.file(bkPending.photos[ids[i]]);if(!fz)continue;
+          var b=await fz.async('blob'),mt=/\.png$/.test(bkPending.photos[ids[i]])?'image/png':/\.webp$/.test(bkPending.photos[ids[i]])?'image/webp':'image/jpeg';
+          var up=await assets.upload(new Blob([b],{type:mt}));map[ids[i]]=up.id;n++;
+        }catch(e){console.warn('photo restore',e);}
+      }
+    }
+    function rm(v){return map[v]||v;}
+    var jobs=[];
+    Object.keys(BK_LBL).forEach(function(k){
+      (c[k]||[]).forEach(function(row){
+        var d=JSON.parse(JSON.stringify(row)),id=k==='vsnap'?d.d:d.id;delete d.id;
+        if(!id)return;
+        if(k==='items'||k==='wishlist'){if(d.mainPhotoId)d.mainPhotoId=rm(d.mainPhotoId);}
+        if(k==='events'&&d.poster)d.poster=rm(d.poster);
+        jobs.push({path:'u/'+uid+'/'+k+'/'+id,data:d});
+      });
+    });
+    var done=0,fail=0;
+    for(var j=0;j<jobs.length;j+=8){
+      await Promise.all(jobs.slice(j,j+8).map(function(x){return db.doc(x.path).set(x.data).then(function(){done++;}).catch(function(e){fail++;console.warn('restore',x.path,e);});}));
+      say('Menulis '+done+'/'+jobs.length+'…');
+    }
+    say('Selesai: '+done+' dokumen dipulihkan'+(fail?', '+fail+' gagal':'')+'.');
+    toast('Pemulihan selesai ✓');bkPending=null;go.style.display='none';
+  }catch(e){console.warn('restore',e);say('Gagal: '+(e&&e.message||e));go.disabled=false;}
+  bkBusy=false;
 }
 
 // ── SUMBER NILAI (ikon bendera) ──
