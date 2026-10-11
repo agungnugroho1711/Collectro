@@ -723,6 +723,7 @@ select.fi option{background:var(--s2);}
     <div style="text-align:center"><div style="font-size:20px;font-weight:700;color:var(--am)" id="pp-roi">—</div><div style="font-size:10px;color:var(--t3)">ROI</div></div>
   </div>
   <div style="padding:0 20px">
+    <div class="mi" onclick="openShow()"><i class="ti ti-photo-star"></i><span>Mode Pamer (galeri tanpa harga)</span><i class="ti ti-chevron-right arr"></i></div>
     <div class="mi" onclick="switchTab('storage')"><i class="ti ti-building-warehouse"></i><span>Storage Management</span><i class="ti ti-chevron-right arr"></i></div>
     <div class="mi" onclick="switchTab('storage');setTimeout(()=>openM('storsett-m'),50)"><i class="ti ti-settings"></i><span>Pengaturan Storage</span><i class="ti ti-chevron-right arr"></i></div>
     <div class="mi" onclick="switchDisc(null,'wishlist');switchTab('discover')"><i class="ti ti-heart"></i><span>Wishlist</span><i class="ti ti-chevron-right arr"></i></div>
@@ -1090,6 +1091,30 @@ select.fi option{background:var(--s2);}
   </div>
 </div>
 
+<div class="mo" id="show-m" style="align-items:stretch;background:#0b1220;z-index:240">
+  <div style="width:100%;max-width:960px;height:100%;display:flex;flex-direction:column;color:#fff;position:relative">
+    <div style="display:flex;align-items:center;gap:8px;padding:calc(12px + env(safe-area-inset-top)) 16px 6px">
+      <div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700" id="sh-title">Koleksi</div><div style="font-size:11px;opacity:.7" id="sh-count"></div></div>
+      <div class="ib" onclick="showExport()" title="Unduh galeri (HTML)"><i class="ti ti-download"></i></div>
+      <div class="ib" onclick="closeM('show-m')" title="Tutup"><i class="ti ti-x"></i></div>
+    </div>
+    <div style="display:flex;gap:6px;padding:4px 16px 8px;overflow-x:auto;white-space:nowrap" id="sh-cats"></div>
+    <div style="display:flex;gap:8px;padding:0 16px 8px;align-items:center;flex-wrap:wrap">
+      <select id="sh-series" onchange="showSet()" style="background:#17233a;color:#fff;border:.5px solid #2c3e5c;border-radius:8px;padding:6px 8px;font-size:12px;max-width:55%"></select>
+      <label style="font-size:12px;display:flex;align-items:center;gap:6px;opacity:.9"><input type="checkbox" id="sh-photo" checked onchange="showSet()" style="accent-color:#38bdf8">Hanya yang ada foto</label>
+    </div>
+    <div id="sh-grid" style="flex:1;min-height:0;overflow:auto;padding:0 12px calc(16px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:10px;align-content:start;-webkit-overflow-scrolling:touch"></div>
+    <div id="sh-lb" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.96);flex-direction:column">
+      <div style="display:flex;align-items:center;gap:8px;padding:calc(12px + env(safe-area-inset-top)) 16px 8px"><div id="sh-lbt" style="flex:1;font-size:13px;font-weight:700;line-height:1.3"></div><div class="ib" onclick="showLb(-1)"><i class="ti ti-x"></i></div></div>
+      <div style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center;position:relative" id="sh-lbw">
+        <div class="ib" style="position:absolute;left:8px;z-index:2" onclick="showStep(-1)"><i class="ti ti-chevron-left"></i></div>
+        <img id="sh-lbi" alt="" style="max-width:100%;max-height:100%;object-fit:contain">
+        <div class="ib" style="position:absolute;right:8px;z-index:2" onclick="showStep(1)"><i class="ti ti-chevron-right"></i></div>
+      </div>
+      <div id="sh-lbs" style="text-align:center;font-size:11px;opacity:.7;padding:8px 16px calc(12px + env(safe-area-inset-bottom))"></div>
+    </div>
+  </div>
+</div>
 <div class="mo" id="poster-m" style="align-items:stretch;background:rgba(0,0,0,.97);z-index:250" onclick="if(event.target===this)closeM('poster-m')">
   <div style="width:100%;max-width:430px;height:100%;display:flex;flex-direction:column;color:#fff">
     <div style="display:flex;align-items:center;gap:8px;padding:calc(12px + env(safe-area-inset-top)) 16px 8px">
@@ -2094,6 +2119,97 @@ function renderStats(){
   document.getElementById('stx-top').innerHTML='<div class="card" style="padding:10px 12px"><h4 style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:4px">Nilai tertinggi</h4>'+list(byVal,function(it){return {t:fmt(it.marketVal||it.price)};})
     +'<h4 style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin:10px 0 4px">Untung terbesar</h4>'+list(gain.filter(function(x){return x.d>0;}),function(x){return {t:'+'+fmt(x.d).replace('Rp ',''),c:'color:var(--gn)'};})
     +'<h4 style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin:10px 0 4px">Rugi terbesar</h4>'+list(loss,function(x){return {t:'−'+fmt(Math.abs(x.d)).replace('Rp ',''),c:'color:var(--rd)'};})+'</div>';
+}
+
+
+// ── MODE PAMER ──
+var shCat='',shList=[],shIdx=0;
+function shTitle(){return bkLS('cr_showtitle')||'Koleksi Saya';}
+function openShow(){
+  document.getElementById('sh-title').textContent=shTitle();
+  shCat='';showBuild();openM('show-m');
+}
+function showBuild(){
+  var cats={};items.forEach(function(i){var c=i.category||'Lainnya';cats[c]=(cats[c]||0)+1;});
+  var names=Object.keys(cats).sort(function(a,b){return cats[b]-cats[a];});
+  document.getElementById('sh-cats').innerHTML=['']
+    .concat(names).map(function(c){var on=shCat===c;return '<span onclick="showCat(\''+esc(c)+'\')" style="cursor:pointer;font-size:12px;padding:5px 11px;border-radius:99px;border:.5px solid '+(on?'#38bdf8':'#2c3e5c')+';background:'+(on?'rgba(56,189,248,.2)':'transparent')+';color:'+(on?'#7dd3fc':'#cbd5e1')+'">'+(c||'Semua')+(c?' '+cats[c]:' '+items.length)+'</span>';}).join('');
+  var ser={};items.filter(function(i){return !shCat||(i.category||'Lainnya')===shCat;}).forEach(function(i){var x=(i.series||'').trim();if(x)ser[x]=(ser[x]||0)+1;});
+  var cur=document.getElementById('sh-series').value;
+  document.getElementById('sh-series').innerHTML='<option value="">Semua series</option>'+Object.keys(ser).sort().map(function(x){return '<option value="'+esc(x)+'"'+(x===cur?' selected':'')+'>'+esc(x)+' ('+ser[x]+')</option>';}).join('');
+  showSet();
+}
+function showCat(c){shCat=c;document.getElementById('sh-series').value='';showBuild();}
+function showFiltered(){
+  var sr=document.getElementById('sh-series').value,onlyPh=document.getElementById('sh-photo').checked;
+  return items.filter(function(i){
+    return (!shCat||(i.category||'Lainnya')===shCat)&&(!sr||(i.series||'').trim()===sr)&&(!onlyPh||i.mainPhotoId);
+  }).sort(function(a,b){return String(a.series||'zzz').localeCompare(String(b.series||'zzz'))||String(a.name||'').localeCompare(String(b.name||''));});
+}
+function showSet(){
+  shList=showFiltered();
+  document.getElementById('sh-count').textContent=shList.length+' dari '+items.length+' koleksi';
+  document.getElementById('sh-grid').innerHTML=shList.length?shList.map(function(it,i){
+    return '<div onclick="showLb('+i+')" style="cursor:pointer;background:#111b2e;border:.5px solid #22314d;border-radius:10px;overflow:clip"><div style="position:relative;aspect-ratio:1;background:#0f172a;overflow:clip"><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">'+(it.mainPhotoId?'<img loading="lazy" src="/_blob/'+esc(it.mainPhotoId)+'" alt="" style="width:100%;height:100%;object-fit:contain">':'<span style="font-size:36px">'+(EMO[it.category]||'📦')+'</span>')+'</div></div><div style="padding:6px 8px 8px"><div style="font-size:11px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">'+esc(it.name)+'</div><div style="font-size:10px;opacity:.6;margin-top:2px">'+esc([it.brand,it.scale&&it.scale!=='Non Scale'?it.scale:''].filter(Boolean).join(' · '))+'</div></div></div>';
+  }).join(''):'<div style="grid-column:1/-1;text-align:center;opacity:.7;padding:30px;font-size:13px">Tidak ada item yang cocok.</div>';
+}
+function showLb(i){
+  var lb=document.getElementById('sh-lb');
+  if(i<0){lb.style.display='none';return;}
+  shIdx=i;lb.style.display='flex';showLbRender();
+}
+function showStep(d){if(!shList.length)return;shIdx=(shIdx+d+shList.length)%shList.length;showLbRender();}
+function showLbRender(){
+  var it=shList[shIdx];if(!it)return;
+  var im=document.getElementById('sh-lbi');
+  if(it.mainPhotoId){im.style.display='';im.src='/_blob/'+it.mainPhotoId;}else{im.style.display='none';im.removeAttribute('src');}
+  document.getElementById('sh-lbt').textContent=it.name;
+  document.getElementById('sh-lbs').textContent=[it.brand,it.series,it.scale&&it.scale!=='Non Scale'?it.scale:''].filter(Boolean).join(' · ')+'  ·  '+(shIdx+1)+'/'+shList.length;
+}
+(function(){
+  var x0=null;
+  document.addEventListener('touchstart',function(e){var w=document.getElementById('sh-lbw');if(w&&w.contains(e.target))x0=e.touches[0].clientX;},{passive:true});
+  document.addEventListener('touchend',function(e){if(x0===null)return;var dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)>50)showStep(dx<0?1:-1);},{passive:true});
+  document.addEventListener('keydown',function(e){var lb=document.getElementById('sh-lb');if(!lb||lb.style.display!=='flex')return;if(e.key==='ArrowRight')showStep(1);else if(e.key==='ArrowLeft')showStep(-1);else if(e.key==='Escape')showLb(-1);});
+})();
+function shThumb(id,max){
+  return fetch('/_blob/'+id).then(function(r){if(!r.ok)throw new Error('http');return r.blob();}).then(function(b){
+    return new Promise(function(res,rej){
+      var u=URL.createObjectURL(b),im=new Image();
+      im.onload=function(){
+        var sc=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');
+        c.width=Math.max(1,Math.round(im.width*sc));c.height=Math.max(1,Math.round(im.height*sc));
+        var g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,c.width,c.height);
+        URL.revokeObjectURL(u);res(c.toDataURL('image/jpeg',0.72));
+      };
+      im.onerror=function(){URL.revokeObjectURL(u);rej(new Error('img'));};im.src=u;
+    });
+  });
+}
+var shBusy=false;
+async function showExport(){
+  if(shBusy)return;
+  if(!downloads){toast('Fitur unduh tidak tersedia');return;}
+  var list=shList.slice();if(!list.length){toast('Tidak ada item untuk diunduh');return;}
+  var LIM=150;
+  if(list.length>LIM){if(!confirm('Ada '+list.length+' item. File akan besar; hanya '+LIM+' item pertama yang diunduh. Persempit dengan filter kategori/series untuk memilih. Lanjut?'))return;list=list.slice(0,LIM);}
+  var title=prompt('Judul galeri:',shTitle());if(title===null)return;title=title.trim()||'Koleksi Saya';bkLS('cr_showtitle',title);
+  document.getElementById('sh-title').textContent=title;
+  shBusy=true;
+  try{
+    var q=list.slice(),out={},done=0;
+    toast('Menyiapkan '+list.length+' foto…');
+    async function w(){while(q.length){var it=q.shift();if(it.mainPhotoId){try{out[it.id]=await shThumb(it.mainPhotoId,420);}catch(e){}}done++;if(done%15===0)toast('Foto '+done+'/'+list.length+'…');}}
+    await Promise.all([w(),w(),w(),w()]);
+    var cards=list.map(function(it){
+      var meta=[it.brand,it.series,it.scale&&it.scale!=='Non Scale'?it.scale:''].filter(Boolean).join(' · ');
+      return '<figure><div class="im">'+(out[it.id]?'<img src="'+out[it.id]+'" alt="">':'<span>'+(EMO[it.category]||'📦')+'</span>')+'</div><figcaption><b>'+esc(it.name)+'</b><small>'+esc(meta)+'</small></figcaption></figure>';
+    }).join('');
+    var html='<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(title)+'</title><style>*{box-sizing:border-box}body{margin:0;background:#0b1220;color:#e5edf8;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:20px 14px 40px}h1{font-size:22px;margin:0 0 2px}p{margin:0 0 18px;opacity:.6;font-size:13px}.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;max-width:1100px;margin:0 auto}h1,p{max-width:1100px;margin-left:auto;margin-right:auto}figure{margin:0;background:#111b2e;border:1px solid #22314d;border-radius:12px;overflow:clip}.im{position:relative;aspect-ratio:1;background:#0f172a}.im>*{position:absolute;inset:0}.im img{width:100%;height:100%;object-fit:contain}.im span{display:flex;align-items:center;justify-content:center;font-size:44px}figcaption{padding:8px 10px 10px}figcaption b{display:block;font-size:12px;line-height:1.3}figcaption small{display:block;opacity:.6;font-size:11px;margin-top:3px}</style></head><body><h1>'+esc(title)+'</h1><p>'+list.length+' item · dibuat dengan Collectro · '+wibDay()+'</p><div class="g">'+cards+'</div></body></html>';
+    await downloads.save({filename:'galeri-collectro-'+wibDay()+'.html',data:new Blob([html],{type:'text/html'})});
+    toast('Galeri diunduh ✓ ('+Math.round(html.length/1024)+' KB)');
+  }catch(e){console.warn('show export',e);toast('Gagal membuat galeri');}
+  shBusy=false;
 }
 
 // ── SUMBER NILAI (ikon bendera) ──
