@@ -182,6 +182,12 @@ body{
 .cd-chip{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;margin:2px 4px 0 0;}
 .cd-w{background:var(--amb);color:var(--am);border:.5px solid var(--am);}
 .cd-g{background:var(--gnb);color:var(--gn);border:.5px solid var(--gn);}
+.sbar-row{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;}
+.sbar-n{width:34%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sbar-t{flex:1;height:14px;background:var(--s2);border-radius:99px;overflow:hidden;}
+.sbar-f{height:100%;background:var(--ac);border-radius:99px;min-width:2px;}
+.sbar-v{width:30%;text-align:right;font-weight:600;font-size:11px;white-space:nowrap;}
+.sbar-s{display:block;font-size:10px;font-weight:400;color:var(--t3);}
 .stit{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--t3);padding:0 20px;margin-bottom:8px;}
 .sec-hdr{display:flex;justify-content:space-between;align-items:center;padding:0 20px;margin-bottom:8px;}
 .see-all{font-size:12px;color:var(--ac2);cursor:pointer;}
@@ -578,6 +584,7 @@ select.fi option{background:var(--s2);}
     <div class="tab active" onclick="switchDisc(this,'health')">💓 Health</div>
     <div class="tab" onclick="switchDisc(this,'wishlist')">❤️ Wishlist</div>
     <div class="tab" onclick="switchDisc(this,'events')">📅 Events</div>
+    <div class="tab" onclick="switchDisc(this,'stats')">📊 Statistik</div>
     <div class="tab" onclick="switchDisc(this,'po')">📦 PO</div>
     <div class="tab" onclick="switchDisc(this,'sale')">💸 Jual</div>
     <div class="tab" onclick="switchDisc(this,'export')">📤 Export</div>
@@ -597,6 +604,19 @@ select.fi option{background:var(--s2);}
   </div>
 
   <!-- WISHLIST -->
+  <div id="disc-stats" style="display:none">
+    <div id="st-over" style="margin:0 20px 12px"></div>
+    <div class="stit">Sebaran koleksi</div>
+    <div class="tabs" id="stx-dim" style="margin-bottom:8px"></div>
+    <div class="tabs" id="stx-met" style="margin-bottom:8px"></div>
+    <div id="stx-body" style="margin:0 20px 16px"></div>
+    <div class="stit">Pengeluaran per bulan</div>
+    <div id="stx-spend" style="margin:0 20px 16px"></div>
+    <div class="stit">Kelengkapan data</div>
+    <div id="stx-dq" style="margin:0 20px 16px"></div>
+    <div class="stit">Teratas</div>
+    <div id="stx-top" style="margin:0 20px 20px"></div>
+  </div>
   <div id="disc-po" style="display:none">
     <div style="display:flex;justify-content:space-between;align-items:center;padding:0 20px;margin-bottom:10px">
       <span style="font-size:12px;color:var(--t3)" id="po-total">0 PO</span>
@@ -1178,7 +1198,7 @@ function switchTab(t){
 }
 function switchDisc(el,id){
   if(el){document.querySelectorAll('#page-discover .tab').forEach(function(t){t.classList.remove('active');});el.classList.add('active');}
-  ['health','wishlist','events','export','sale','po'].forEach(function(i){
+  ['health','wishlist','events','export','sale','po','stats'].forEach(function(i){
     document.getElementById('disc-'+i).style.display=i===id?'block':'none';
   });
   if(id==='events')renderEvents();
@@ -1187,6 +1207,7 @@ function switchDisc(el,id){
   if(id==='export')renderRT();
   if(id==='sale')renderSale();
   if(id==='po')renderPO();
+  if(id==='stats')renderStats();
 }
 
 // ── INIT ──
@@ -1251,7 +1272,7 @@ function setLoginWarn(show,msg){
 function subItems(){
   db.collection('u/'+uid+'/items').orderBy('createdAt','desc').onSnapshot(function(snap){
     items=snap.docs.filter(function(d){return d.exists;}).map(function(d){return Object.assign({id:d.id},d.data());});
-    renderDashboard();renderTrend();snapSoon();bakMaybe();bkStatus();renderCollection();renderHealth();
+    renderDashboard();renderTrend();snapSoon();bakMaybe();bkStatus();try{var dsx=document.getElementById('disc-stats');if(dsx&&dsx.style.display!=='none')renderStats();}catch(e){}renderCollection();renderHealth();
     renderStorTree();renderStorSum();renderSSet();refreshShelf();
   });
 }
@@ -2005,6 +2026,74 @@ async function poDel(){
   if(!confirm('Hapus pre-order ini?'))return;
   try{await db.doc('u/'+uid+'/preorders/'+poId).delete();closeM('po-m');toast('Dihapus');}
   catch(e){toast('Gagal');}
+}
+
+
+// ── STATISTIK ──
+var stDim='brand',stMet='count';
+var ST_DIMS=[['brand','Brand'],['series','Series'],['category','Kategori'],['scale','Skala'],['health','Kondisi'],['loc','Lokasi'],['year','Tahun beli']];
+function stKey(it,d){
+  var v;
+  if(d==='loc')v=it.storageName;else if(d==='year')v=(it.buyDate||'').slice(0,4);else v=it[d];
+  v=String(v||'').trim();return v||'(kosong)';
+}
+function stSetDim(d){stDim=d;renderStats();}
+function stSetMet(m){stMet=m;renderStats();}
+function renderStats(){
+  var el=document.getElementById('st-over');if(!el)return;
+  var n=items.length;
+  if(!n){el.innerHTML='<div class="empty"><i class="ti ti-chart-bar"></i><p>Belum ada koleksi</p></div>';['stx-body','stx-spend','stx-dq','stx-top'].forEach(function(i){document.getElementById(i).innerHTML='';});return;}
+  var cost=0,val=0,noPhoto=0;
+  items.forEach(function(i){cost+=Number(i.price)||0;val+=Number(i.marketVal||i.price)||0;if(!i.mainPhotoId)noPhoto++;});
+  var roi=cost?Math.round((val-cost)/cost*100):0;
+  el.innerHTML='<div class="sg" style="padding:0;margin-bottom:0"><div class="sc"><div class="sl">Item</div><div class="sv" style="color:var(--ac2)">'+n+'</div><div class="ss">rata-rata beli '+fmt(Math.round(cost/n))+'</div></div><div class="sc"><div class="sl">Nilai pasar</div><div class="sv" style="color:var(--gn);font-size:17px">'+rpFull(val)+'</div><div class="ss">modal '+rpFull(cost)+' · '+(roi>=0?'+':'')+roi+'%</div></div></div>';
+  document.getElementById('stx-dim').innerHTML=ST_DIMS.map(function(d){return '<div class="tab'+(stDim===d[0]?' active':'')+'" onclick="stSetDim(\''+d[0]+'\')">'+d[1]+'</div>';}).join('');
+  document.getElementById('stx-met').innerHTML=[['count','Jumlah'],['val','Nilai'],['cost','Modal']].map(function(m){return '<div class="tab'+(stMet===m[0]?' active':'')+'" onclick="stSetMet(\''+m[0]+'\')">'+m[1]+'</div>';}).join('');
+  // grup
+  var g={};
+  items.forEach(function(i){var k=stKey(i,stDim),o=g[k]||(g[k]={k:k,n:0,cost:0,val:0});o.n++;o.cost+=Number(i.price)||0;o.val+=Number(i.marketVal||i.price)||0;});
+  var arr=Object.keys(g).map(function(k){return g[k];});
+  arr.sort(function(a,b){return (stMet==='count'?b.n-a.n:stMet==='val'?b.val-a.val:b.cost-a.cost)||(a.k<b.k?-1:1);});
+  if(stDim==='year')arr.sort(function(a,b){return a.k<b.k?1:-1;});
+  var top=arr.slice(0,12),rest=arr.slice(12);
+  var mv=function(o){return stMet==='count'?o.n:stMet==='val'?o.val:o.cost;};
+  var mx=Math.max.apply(null,top.map(mv).concat([1]));
+  var rows=top.map(function(o){
+    var r=o.cost?Math.round((o.val-o.cost)/o.cost*100):null;
+    return '<div class="sbar-row"><div class="sbar-n" title="'+esc(o.k)+'">'+esc(o.k)+'</div><div class="sbar-t"><div class="sbar-f" style="width:'+Math.max(2,mv(o)/mx*100).toFixed(1)+'%"></div></div><div class="sbar-v">'+(stMet==='count'?o.n+' item':fmt(mv(o)))+'<span class="sbar-s">'+(stMet==='count'?fmt(o.val):o.n+' item')+(r!==null?' · '+(r>=0?'+':'')+r+'%':'')+'</span></div></div>';
+  }).join('');
+  if(rest.length){var rn=0,rv=0;rest.forEach(function(o){rn+=o.n;rv+=o.val;});rows+='<div style="font-size:11px;color:var(--t3);padding-top:4px">+ '+rest.length+' kelompok lain ('+rn+' item, '+fmt(rv)+')</div>';}
+  document.getElementById('stx-body').innerHTML='<div class="card" style="padding:10px 12px">'+rows+'</div>';
+  // pengeluaran per bulan (12 bulan terakhir)
+  var months=[],t=new Date(wibDay()+'T00:00:00Z');
+  for(var i=11;i>=0;i--){var d=new Date(Date.UTC(t.getUTCFullYear(),t.getUTCMonth()-i,1));months.push(d.toISOString().slice(0,7));}
+  var sp={},cnt={},noDate=0,older=0;
+  items.forEach(function(it){var m=(it.buyDate||'').slice(0,7);if(!m){noDate++;return;}if(m<months[0]){older++;return;}sp[m]=(sp[m]||0)+(Number(it.price)||0);cnt[m]=(cnt[m]||0)+1;});
+  var smx=Math.max.apply(null,months.map(function(m){return sp[m]||0;}).concat([1])),stotal=0;
+  months.forEach(function(m){stotal+=sp[m]||0;});
+  document.getElementById('stx-spend').innerHTML='<div class="card" style="padding:12px"><div style="display:flex;align-items:flex-end;gap:3px;height:90px">'+months.map(function(m){var v=sp[m]||0;return '<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%" title="'+m+': '+rpFull(v)+'"><div style="height:'+(v?Math.max(3,v/smx*100):0)+'%;background:var(--ac);border-radius:3px 3px 0 0"></div></div>';}).join('')+'</div><div style="display:flex;gap:3px;margin-top:3px">'+months.map(function(m){return '<div style="flex:1;text-align:center;font-size:9px;color:var(--t3)">'+MON[Number(m.slice(5))-1].slice(0,1)+'</div>';}).join('')+'</div><div style="font-size:11px;color:var(--t3);margin-top:8px;line-height:1.6">12 bulan terakhir: <b style="color:var(--t1)">'+rpFull(stotal)+'</b> · rata-rata '+rpFull(stotal/12)+'/bulan<br>'+(older?older+' item dibeli lebih lama · ':'')+(noDate?noDate+' item belum punya tanggal beli':'semua item punya tanggal beli')+'</div></div>';
+  // kelengkapan data
+  var now=Date.now();
+  var Q=[
+    ['Tanpa foto',items.filter(function(i){return !i.mainPhotoId;})],
+    ['Tanpa harga beli',items.filter(function(i){return !i.price;})],
+    ['Tanpa tanggal beli',items.filter(function(i){return !i.buyDate;})],
+    ['Tanpa lokasi',items.filter(function(i){return !i.storageId;})],
+    ['Belum ada nilai pasar',items.filter(function(i){return !i.marketVal;})],
+    ['Nilai pasar >30 hari belum dicek',items.filter(function(i){return i.marketVal&&(!i.marketValAt||now-new Date(i.marketValAt).getTime()>30*864e5);})]
+  ];
+  document.getElementById('stx-dq').innerHTML='<div class="card" style="padding:4px 12px">'+Q.map(function(q,qi){
+    var c=q[1].length;
+    return '<details style="padding:6px 0;border-bottom:.5px solid var(--b2)"><summary style="font-size:12px;cursor:pointer;display:flex;justify-content:space-between"><span>'+q[0]+'</span><b style="color:'+(c?'var(--am)':'var(--gn)')+'">'+(c?c+' item':'✓')+'</b></summary>'+(c?'<div style="margin-top:6px">'+q[1].slice(0,10).map(function(it){return '<div style="font-size:11px;padding:3px 0;cursor:pointer;color:var(--ac2)" onclick="openDetail(\''+it.id+'\')">'+esc(it.name)+'</div>';}).join('')+(c>10?'<div style="font-size:11px;color:var(--t3)">… dan '+(c-10)+' lainnya</div>':'')+'</div>':'')+'</details>';
+  }).join('')+'</div>';
+  // teratas
+  var byVal=items.slice().sort(function(a,b){return (Number(b.marketVal||b.price)||0)-(Number(a.marketVal||a.price)||0);}).slice(0,5);
+  var withRoi=items.filter(function(i){return i.price&&i.marketVal;}).map(function(i){return {it:i,d:i.marketVal-i.price};});
+  var gain=withRoi.slice().sort(function(a,b){return b.d-a.d;}).slice(0,5),loss=withRoi.filter(function(x){return x.d<0;}).sort(function(a,b){return a.d-b.d;}).slice(0,5);
+  function list(arr,f){return arr.length?arr.map(function(x){var it=x.it||x;return '<div class="trc-mi" onclick="openDetail(\''+it.id+'\')"><span>'+esc(it.name)+'</span><span style="'+(f(x).c||'')+'">'+f(x).t+'</span></div>';}).join(''):'<div style="font-size:11px;color:var(--t3)">—</div>';}
+  document.getElementById('stx-top').innerHTML='<div class="card" style="padding:10px 12px"><h4 style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:4px">Nilai tertinggi</h4>'+list(byVal,function(it){return {t:fmt(it.marketVal||it.price)};})
+    +'<h4 style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin:10px 0 4px">Untung terbesar</h4>'+list(gain.filter(function(x){return x.d>0;}),function(x){return {t:'+'+fmt(x.d).replace('Rp ',''),c:'color:var(--gn)'};})
+    +'<h4 style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin:10px 0 4px">Rugi terbesar</h4>'+list(loss,function(x){return {t:'−'+fmt(Math.abs(x.d)).replace('Rp ',''),c:'color:var(--rd)'};})+'</div>';
 }
 
 // ── SUMBER NILAI (ikon bendera) ──
