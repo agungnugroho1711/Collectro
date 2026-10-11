@@ -160,6 +160,18 @@ body{
 .trc-mi{display:flex;justify-content:space-between;gap:6px;font-size:11px;padding:3px 0;border-bottom:.5px solid var(--b2);cursor:pointer;}
 .trc-mi span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .trc-mi span:last-child{font-weight:600;white-space:nowrap;}
+.dc{margin:10px 20px 0;background:var(--s1);border:.5px solid var(--b2);border-radius:var(--rs);padding:10px 12px;}
+.dc-row{display:flex;align-items:center;gap:8px;}
+.dc-row input{flex:1;background:transparent;border:none;outline:none;color:var(--t1);font-size:13px;min-width:0;}
+.dpv{border-radius:var(--rs);padding:8px 10px;margin-top:8px;font-size:12px;line-height:1.45;}
+.dpv b{font-weight:700;}
+.dpv-r{background:var(--rdb);border:.5px solid var(--rd);}
+.dpv-b{background:var(--acb);border:.5px solid var(--ac);}
+.dpv-a{background:var(--amb);border:.5px solid var(--am);}
+.dpv-g{background:var(--gnb);border:.5px solid var(--gn);}
+.dpv ul{margin:4px 0 0 16px;padding:0;}
+.dpv li{margin:2px 0;}
+.dpv .df{color:var(--t3);font-size:11px;}
 .stit{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--t3);padding:0 20px;margin-bottom:8px;}
 .sec-hdr{display:flex;justify-content:space-between;align-items:center;padding:0 20px;margin-bottom:8px;}
 .see-all{font-size:12px;color:var(--ac2);cursor:pointer;}
@@ -399,7 +411,11 @@ select.fi option{background:var(--s2);}
     <div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--ac2)">Scan barang</div><div style="font-size:11px;color:var(--t3)">Foto → info &amp; estimasi harga → Koleksi / Wishlist</div></div>
     <i class="ti ti-chevron-right" style="color:var(--t3)"></i>
   </div>
-  <div class="sg" id="dash-stats">
+  <div class="dc">
+    <div class="dc-row"><i class="ti ti-copy-check" style="font-size:18px;color:var(--ac2)"></i><input type="text" id="dc-q" placeholder="Cek duplikat: ketik nama barang yang ditaksir…" oninput="dcRun(this.value)" autocomplete="off"></div>
+    <div id="dc-res"></div>
+  </div>
+  <div class="sg" id="dash-stats" style="margin-top:12px">
     <div class="sc"><div class="sl">Total koleksi</div><div class="sv" style="color:var(--ac2)" id="st-total">—</div><div class="ss">item</div></div>
     <div class="sc"><div class="sl">Nilai koleksi</div><div class="sv" style="color:var(--gn)" id="st-val">—</div><div class="ss">est. pasar</div></div>
     <div class="sc"><div class="sl">Modal beli</div><div class="sv" style="color:var(--am)" id="st-cost">—</div><div class="ss">investasi</div></div>
@@ -469,7 +485,7 @@ select.fi option{background:var(--s2);}
     </div>
 
     <div class="fl">Nama item *</div>
-    <input class="fi" type="text" id="f-name" placeholder="cth. Rem 1/7 Scale Figure">
+    <input class="fi" type="text" id="f-name" placeholder="cth. Rem 1/7 Scale Figure" oninput="dupFormWarn()"><div id="f-dup"></div>
 
     <div class="prow">
       <div><div class="fl">Brand</div><input class="fi" type="text" id="f-brand" placeholder="cth. FuRyu"></div>
@@ -1218,6 +1234,81 @@ function histRow(it){
     +(ch.length>1?sparkSVG(h.map(function(x){return x.v;}).concat([cur]),300,44,dl>=0?'var(--gn)':'var(--rd)')+'<div style="font-size:10px;color:var(--t3)">Terakhir berubah '+dShort(lastCh.d)+' · '+ch.length+' titik perubahan tercatat</div>':'<div style="font-size:10px;color:var(--t3)">Belum ada perubahan nilai ('+h.length+' hari tercatat)</div>')+'</div>';
 }
 
+
+// ── DETEKSI DUPLIKAT ──
+var DUP_STOP={the:1,of:1,and:1,a:1,ver:1,version:1,figure:1,action:1,'no':1,edition:1,recast:0};
+function dupTok(s){
+  s=String(s||'').toLowerCase().replace(/\(recast\)/g,' recast ').replace(/[’']/g,'').replace(/s\.h\.figuarts/g,'shfiguarts').replace(/s\.h\./g,'sh').replace(/[^a-z0-9぀-ヿ一-鿿]+/g,' ');
+  var o=[],seen={};
+  s.split(' ').forEach(function(w){if(!w||DUP_STOP[w]===1)return;if(w.length>3&&/s$/.test(w)&&!/ss$/.test(w))w=w.slice(0,-1);if(!seen[w]){seen[w]=1;o.push(w);}});
+  return o;
+}
+var DUP_VAR={extra:1,battle:1,chou:1,gekisen:1,special:1,color:1,colour:1,anniversary:1,limited:1,exclusive:1,vol:1,set:1,recast:1,wano:1,film:1};
+function dupWeights(pool){
+  var df={},n=pool.length||1;
+  pool.forEach(function(it){dupTok(it.name).forEach(function(w){df[w]=(df[w]||0)+1;});});
+  return function(w){return Math.log(1+n/(df[w]||1));};
+}
+function dupCmp(a,b,W){
+  var A=dupTok(a),B=dupTok(b);if(!A.length||!B.length)return null;
+  var sa={},sb={};A.forEach(function(w){sa[w]=1;});B.forEach(function(w){sb[w]=1;});
+  var wi=0,wu=0,shared=0;
+  A.forEach(function(w){var x=W(w);if(sb[w]){wi+=x;wu+=x;shared++;}else wu+=x;});
+  B.forEach(function(w){if(!sa[w])wu+=W(w);});
+  var onlyA=A.filter(function(w){return !sb[w];}),onlyB=B.filter(function(w){return !sa[w];});
+  var exact=!onlyA.length&&!onlyB.length,sc=wu?wi/wu:0;
+  var lvl=exact?'exact':sc>=0.8?'high':sc>=0.53?'similar':null;
+  if(!lvl)return null;
+  if(lvl==='high'&&onlyA.concat(onlyB).some(function(w){return DUP_VAR[w]||/^\d+$/.test(w);}))lvl='similar';
+  return {lvl:lvl,score:exact?1:sc,onlyQ:onlyA,onlyI:onlyB};
+}
+function dupFind(q,pool,skipId){
+  var W=dupWeights(pool),out=[];
+  pool.forEach(function(it){if(skipId&&it.id===skipId)return;var c=dupCmp(q,it.name,W);if(c){c.it=it;out.push(c);}});
+  var rank={exact:0,high:1,similar:2};
+  out.sort(function(a,b){return rank[a.lvl]-rank[b.lvl]||b.score-a.score;});
+  return out;
+}
+
+function dupVerdict(q,skipId){
+  q=String(q||'').trim();
+  if(dupTok(q).length<2)return null;
+  var mi=dupFind(q,items,skipId),mw=dupFind(q,wishes);
+  var sameI=mi.filter(function(m){return m.lvl!=='similar';}),sameW=mw.filter(function(m){return m.lvl!=='similar';});
+  var simI=mi.filter(function(m){return m.lvl==='similar';}).slice(0,3),simW=mw.filter(function(m){return m.lvl==='similar';}).slice(0,2);
+  var kind=sameI.length?'own':sameW.length?'wish':(simI.length||simW.length)?'var':'none';
+  return {kind:kind,sameI:sameI,sameW:sameW,simI:simI,simW:simW,block:sameI.length>0};
+}
+function dupLi(m,isW){
+  var it=m.it,df=(m.onlyQ.length||m.onlyI.length)?'<div class="df">'+(m.onlyQ.length?'yang kamu cek: +'+esc(m.onlyQ.join(' ')):'')+(m.onlyQ.length&&m.onlyI.length?' · ':'')+(m.onlyI.length?'di '+(isW?'wishlist':'koleksi')+': +'+esc(m.onlyI.join(' ')):'')+'</div>':'';
+  var meta=isW?(it.price?' · target '+fmt(it.price):''):((it.health?' · '+esc(it.health):'')+(it.price?' · beli '+fmt(it.price):'')+(it.storageName?' · '+esc(it.storageName):''));
+  return '<li><span'+(isW?'':' style="cursor:pointer;text-decoration:underline dotted" onclick="dcOpen(\''+it.id+'\')"')+'>'+esc(it.name)+'</span>'+meta+df+'</li>';
+}
+function dupHTML(v){
+  if(!v)return '';
+  var h='';
+  if(v.sameI.length)h+='<div class="dpv dpv-r"><b>⛔ Sudah punya</b><ul>'+v.sameI.map(function(m){return dupLi(m,false);}).join('')+'</ul></div>';
+  if(v.sameW.length)h+='<div class="dpv dpv-b"><b>💙 Sudah ada di wishlist</b><ul>'+v.sameW.map(function(m){return dupLi(m,true);}).join('')+'</ul></div>';
+  if(v.simI.length||v.simW.length)h+='<div class="dpv dpv-a"><b>⚠️ Mirip / versi lain</b> — cek apakah ini versi yang sama<ul>'+v.simI.map(function(m){return dupLi(m,false);}).join('')+v.simW.map(function(m){return dupLi(m,true);}).join('')+'</ul></div>';
+  if(v.kind==='none')h+='<div class="dpv dpv-g"><b>✅ Belum punya</b> — tidak ada nama yang cocok di koleksi atau wishlist.</div>';
+  return h;
+}
+function dcRun(q){
+  var el=document.getElementById('dc-res');if(!el)return;
+  var v=dupVerdict(q);
+  el.innerHTML=v?dupHTML(v):(String(q||'').trim()?'<div class="dpv" style="color:var(--t3)">Ketik minimal 2 kata (mis. lini + karakter).</div>':'');
+}
+function dcOpen(id){openDetail(id);}
+var dupWarnT=null;
+function dupFormWarn(){
+  clearTimeout(dupWarnT);window._dupOK=false;
+  dupWarnT=setTimeout(function(){
+    var el=document.getElementById('f-dup');if(!el)return;
+    var v=dupVerdict(document.getElementById('f-name').value);
+    el.innerHTML=v&&v.kind!=='none'?dupHTML(v):'';
+  },350);
+}
+
 // ── SUMBER NILAI (ikon bendera) ──
 function srcFlag(it){
   var s=String((it&&it.marketValSrc)||'');
@@ -1346,6 +1437,12 @@ async function saveItem(){
   var errEl=document.getElementById('save-err');
   if(!name){errEl.textContent='Nama item wajib diisi';errEl.style.display='block';return;}
   errEl.style.display='none';
+  var dv=dupVerdict(name);
+  if(dv&&dv.block&&!window._dupOK){
+    window._dupOK=true;
+    errEl.textContent='⚠️ Sudah ada di koleksi: '+dv.sameI[0].it.name+'. Tekan Simpan lagi bila memang ingin menambah (unit kedua/versi sama).';errEl.style.display='block';
+    return;
+  }
   if(!uid&&user){uid=await user.id();}
   if(!db||!uid){setLoginWarn(true,'Login diperlukan untuk menyimpan');toast('Login diperlukan');return;}
   setSyncDot('sync');
@@ -1374,6 +1471,7 @@ async function saveItem(){
       try{var up=await assets.upload(pendingPhotos[0].blob);await ref.update({mainPhotoId:up.id});}catch(ae){console.warn('photo',ae);}
     }
     toast('Koleksi disimpan! 🎉');
+    window._dupOK=false;var fd=document.getElementById('f-dup');if(fd)fd.innerHTML='';
     ['f-name','f-brand','f-series','f-scale','f-price','f-date','f-notes'].forEach(function(id){document.getElementById(id).value='';});
     document.getElementById('f-health').selectedIndex=0;
     document.getElementById('f-status').selectedIndex=0;
@@ -1531,8 +1629,10 @@ async function scanAnalyze(){
     var info='<div style="font-size:11px;color:var(--t3)">Estimasi pasar Indonesia</div>'
       +'<div style="font-size:18px;font-weight:800;margin:2px 0">'+fmt(scanRes.low)+' – '+fmt(scanRes.high)+'</div>'
       +'<div style="font-size:12px">Rata-rata: <b>'+fmt(scanRes.avg)+'</b> · Keyakinan: <b style="color:'+cc+'">'+esc(cf)+'</b></div>';
-    var own=scanOwned(scanRes.match);
-    if(own)info+='<div style="margin-top:8px;padding:6px 8px;border-radius:var(--rs);background:var(--amb);font-size:12px"><b>Sudah ada di koleksi:</b> '+esc(own.name)+(own.price?' (dibeli '+fmt(own.price)+')':'')+'</div>';
+    var own=scanOwned(scanRes.match),dvr=dupVerdict(scanRes.name||scanRes.match);
+    if(dvr&&dvr.kind!=='own'&&own)dvr=dupVerdict(own.name);
+    if(dvr)info+='<div style="margin-top:8px">'+dupHTML(dvr)+'</div>';
+    else if(own)info+='<div style="margin-top:8px;padding:6px 8px;border-radius:var(--rs);background:var(--amb);font-size:12px"><b>Sudah ada di koleksi:</b> '+esc(own.name)+(own.price?' (dibeli '+fmt(own.price)+')':'')+'</div>';
     if(tag&&scanRes.avg){var d=Math.round((tag-scanRes.avg)/scanRes.avg*100);info+='<div style="margin-top:6px;font-size:12px"><b>Tag '+fmt(tag)+'</b> = '+(d>0?'+':'')+d+'% dari rata-rata'+(scanRes.verdict?' — '+esc(scanRes.verdict):'')+'</div>';}
     else if(scanRes.verdict){info+='<div style="margin-top:6px;font-size:12px">'+esc(scanRes.verdict)+'</div>';}
     if(scanRes.ocr)info+='<div style="margin-top:6px;font-size:11px;color:var(--t3)">Teks terbaca: '+esc(scanRes.ocr)+'</div>';
