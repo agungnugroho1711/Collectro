@@ -577,6 +577,7 @@ select.fi option{background:var(--s2);}
     <div class="tab active" onclick="switchDisc(this,'health')">💓 Health</div>
     <div class="tab" onclick="switchDisc(this,'wishlist')">❤️ Wishlist</div>
     <div class="tab" onclick="switchDisc(this,'events')">📅 Events</div>
+    <div class="tab" onclick="switchDisc(this,'sale')">💸 Jual</div>
     <div class="tab" onclick="switchDisc(this,'export')">📤 Export</div>
   </div>
 
@@ -594,6 +595,14 @@ select.fi option{background:var(--s2);}
   </div>
 
   <!-- WISHLIST -->
+  <div id="disc-sale" style="display:none">
+    <div id="sale-sum" style="margin:0 20px 12px"></div>
+    <div class="stit">Sedang dijual</div>
+    <div class="llist" id="sale-list"></div>
+    <div class="stit" style="margin-top:16px">Riwayat terjual</div>
+    <div id="sold-sum" style="margin:0 20px 8px"></div>
+    <div class="llist" id="sold-list"></div>
+  </div>
   <div id="disc-wishlist" style="display:none">
     <div style="display:flex;justify-content:space-between;align-items:center;padding:0 20px;margin-bottom:10px">
       <span style="font-size:12px;color:var(--t3)" id="wish-total">0 item</span>
@@ -889,6 +898,42 @@ select.fi option{background:var(--s2);}
   </div>
 </div>
 
+<div class="mo" id="sale-m" onclick="if(event.target===this)closeM('sale-m')">
+  <div class="ms" style="max-height:92vh;overflow-y:auto">
+    <div class="mh"></div>
+    <div class="mt" id="sl-title">Jual</div>
+    <div id="sl-info" style="font-size:12px;line-height:1.6;margin-bottom:10px"></div>
+    <div class="prow">
+      <div><div class="fl">Harga minta (Rp)</div><input class="fi" type="number" id="sl-ask" inputmode="numeric" oninput="slCalc()"></div>
+      <div><div class="fl">Biaya platform (%)</div><input class="fi" type="number" id="sl-fee" inputmode="decimal" step="0.1" oninput="slCalc()"></div>
+    </div>
+    <div id="sl-net" style="font-size:12px;color:var(--t3);margin:6px 0 10px"></div>
+    <div class="prow">
+      <div><div class="fl">Format teks</div><select class="fi" id="sl-fmt" onchange="slText()"><option value="mp">Marketplace (judul + deskripsi)</option><option value="grp">Grup / WhatsApp</option></select></div>
+      <div><div class="fl">Harga</div><select class="fi" id="sl-nego" onchange="slText()"><option value="nego">Bisa nego</option><option value="pas">Harga pas</option></select></div>
+    </div>
+    <div class="fl">Lokasi / COD</div><input class="fi" type="text" id="sl-loc" oninput="slText()">
+    <label style="display:flex;align-items:center;gap:8px;font-size:12px;margin:10px 0 0;cursor:pointer"><input type="checkbox" id="sl-serial" onchange="slText()" style="accent-color:var(--ac)">Cantumkan nomor seri / batch</label>
+    <div class="fl">Teks listing (bisa diedit)</div>
+    <textarea class="fi" id="sl-text" rows="11" style="resize:vertical;font-size:12px"></textarea>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn-p" style="flex:1" onclick="slCopy()"><i class="ti ti-copy" style="vertical-align:-2px;margin-right:4px"></i>Salin teks</button>
+      <button class="btn-s" style="flex:1" id="sl-photo" onclick="slPhoto()"><i class="ti ti-photo-down" style="vertical-align:-2px;margin-right:4px"></i>Unduh foto</button>
+    </div>
+    <button class="btn-s" style="width:100%;margin-top:8px" onclick="slSave()"><i class="ti ti-tag" style="vertical-align:-2px;margin-right:4px"></i>Simpan sebagai “For Sale” + harga minta</button>
+    <div style="border-top:.5px solid var(--b1);margin:14px 0 8px"></div>
+    <div style="font-size:12px;font-weight:700;margin-bottom:4px">Sudah terjual?</div>
+    <div class="prow">
+      <div><div class="fl">Harga terjual (Rp)</div><input class="fi" type="number" id="sl-sp" inputmode="numeric"></div>
+      <div><div class="fl">Biaya / ongkir ditanggung (Rp)</div><input class="fi" type="number" id="sl-sf" inputmode="numeric" placeholder="0"></div>
+    </div>
+    <div class="prow">
+      <div><div class="fl">Tanggal</div><input class="fi" type="date" id="sl-sd"></div>
+      <div><div class="fl">Platform / pembeli</div><input class="fi" type="text" id="sl-sn" placeholder="cth. Tokopedia / grup FB"></div>
+    </div>
+    <button class="btn-p" style="width:100%;margin-top:10px;background:linear-gradient(135deg,#059669,#34d399)" onclick="slSold()"><i class="ti ti-circle-check" style="vertical-align:-2px;margin-right:4px"></i>Tandai terjual (pindah ke riwayat)</button>
+  </div>
+</div>
 <div class="mo" id="wedit-m" onclick="if(event.target===this)closeM('wedit-m')">
   <div class="ms" style="max-height:88vh;overflow-y:auto">
     <div class="mh"></div>
@@ -1038,7 +1083,7 @@ select.fi option{background:var(--s2);}
 // ── STATE ──
 var db,sample,assets,user,downloads,mcpx;
 var uid=null;
-var items=[],locs=[],wishes=[];
+var items=[],locs=[],wishes=[],soldList=[];
 var curCat='',curView='g',curRad=30,curCity='jakarta',curCityName='Jakarta & sekitarnya';
 var storPath=[];
 var aiTimer=null;
@@ -1091,13 +1136,14 @@ function switchTab(t){
 }
 function switchDisc(el,id){
   if(el){document.querySelectorAll('#page-discover .tab').forEach(function(t){t.classList.remove('active');});el.classList.add('active');}
-  ['health','wishlist','events','export'].forEach(function(i){
+  ['health','wishlist','events','export','sale'].forEach(function(i){
     document.getElementById('disc-'+i).style.display=i===id?'block':'none';
   });
   if(id==='events')renderEvents();
   if(id==='health')renderHealth();
   if(id==='wishlist')renderWishlist();
   if(id==='export')renderRT();
+  if(id==='sale')renderSale();
 }
 
 // ── INIT ──
@@ -1134,7 +1180,7 @@ async function init(){
   }
 
   if(db&&uid){
-    subItems();subLocs();subWishes();subEvents();subSnaps();subBak();
+    subItems();subLocs();subWishes();subEvents();subSnaps();subBak();subSold();
   }else{
     renderDashboard();
   }
@@ -1372,7 +1418,7 @@ function dupFormWarn(){
 var bkBusy=false,bakList=[],bakReady=false,bakDone=false,bakTimer=null,bkPending=null;
 function bkLS(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v);}catch(e){return null;}}
 function bkCols(withHist){
-  var c={items:items,locations:locs,wishlist:wishes,events:dbEvents||[]};
+  var c={items:items,locations:locs,wishlist:wishes,events:dbEvents||[],sold:soldList};
   if(withHist)c.vsnap=snaps;
   var o={};Object.keys(c).forEach(function(k){o[k]=JSON.parse(JSON.stringify(c[k]));});
   return o;
@@ -1526,8 +1572,8 @@ async function bkPickFile(inp){
     bkPending={cols:obj.collections,zip:zip,photos:obj.photos||null,label:f.name};bkPreview();
   }catch(e){document.getElementById('bk-body').innerHTML='<div style="color:var(--rd);font-size:12px">Gagal: '+esc(e&&e.message||e)+'</div>';}
 }
-function bkLive(col){return {items:items,locations:locs,wishlist:wishes,events:dbEvents||[],vsnap:snaps}[col]||[];}
-var BK_LBL={items:'Item koleksi',locations:'Lokasi',wishlist:'Wishlist',events:'Event',vsnap:'Riwayat nilai (hari)'};
+function bkLive(col){return {items:items,locations:locs,wishlist:wishes,events:dbEvents||[],vsnap:snaps,sold:soldList}[col]||[];}
+var BK_LBL={items:'Item koleksi',sold:'Riwayat terjual',locations:'Lokasi',wishlist:'Wishlist',events:'Event',vsnap:'Riwayat nilai (hari)'};
 function bkPreview(){
   var c=bkPending.cols,rows='',tot=0;
   Object.keys(BK_LBL).forEach(function(k){
@@ -1672,6 +1718,141 @@ function condRows(it){
   var cf=condFactor(it),mv=it.marketVal||it.price||0;
   if(cf.f<1&&mv)h+='<div class="dr"><span class="dk">Perkiraan nilai jual</span><span class="dv" style="text-align:right;max-width:62%">'+fmt(Math.round(mv*cf.f/5000)*5000)+'<div style="font-size:10px;color:var(--t3);font-weight:400">nilai pasar disesuaikan kondisi: '+esc(cf.why.join(', '))+'</div></span></div>';
   return h;
+}
+
+
+// ── MODE JUAL ──
+var slId=null;
+function subSold(){
+  try{db.collection('u/'+uid+'/sold').onSnapshot(function(snap){
+    soldList=snap.docs.filter(function(d){return d.exists;}).map(function(d){return Object.assign({id:d.id},d.data());}).sort(function(a,b){return String(b.soldAt||'')<String(a.soldAt||'')?-1:1;});
+    renderSale();
+  });}catch(x){console.warn('sold',x);}
+}
+function rpFull(n){return 'Rp '+Math.round(Number(n)||0).toLocaleString('id-ID');}
+function slSuggest(it){
+  var mv=it.marketVal||it.price||0,cf=condFactor(it);
+  return Math.round(mv*cf.f/5000)*5000;
+}
+function renderSale(){
+  var sl=document.getElementById('sale-list');if(!sl)return;
+  var fs=items.filter(function(i){return i.status==='For Sale';});
+  var ask=0,pot=0;
+  fs.forEach(function(i){ask+=Number(i.askPrice)||0;pot+=(Number(i.askPrice)||0)-(Number(i.price)||0);});
+  document.getElementById('sale-sum').innerHTML='<div class="sg" style="padding:0;margin-bottom:0"><div class="sc"><div class="sl">Dijual</div><div class="sv" style="color:var(--ac2)">'+fs.length+'</div><div class="ss">item</div></div><div class="sc"><div class="sl">Total harga minta</div><div class="sv" style="color:var(--gn);font-size:17px">'+(ask?rpFull(ask):'—')+'</div><div class="ss">potensi '+(ask?(pot>=0?'+':'−')+rpFull(Math.abs(pot)):'—')+' vs modal</div></div></div>';
+  sl.innerHTML=fs.length?fs.map(function(it){
+    var a=Number(it.askPrice)||0,m=a&&it.price?a-it.price:null;
+    return '<div class="li" style="cursor:pointer" onclick="saleOpen(\''+it.id+'\')"><div class="li-th">'+(it.mainPhotoId?'<img src="/_blob/'+esc(it.mainPhotoId)+'" alt="" style="width:100%;height:100%;object-fit:cover">':'<span>'+(EMO[it.category]||'📦')+'</span>')+'</div><div class="li-info"><div class="li-name">'+esc(it.name)+'</div><div class="li-sub">'+esc(it.health||'')+(it.price?' · beli '+fmt(it.price):'')+'</div></div><div class="wl-r"><div class="li-val">'+(a?rpFull(a):'harga belum diisi')+'</div>'+(m!==null?'<div style="font-size:10px;font-weight:600;color:'+(m>=0?'var(--gn)':'var(--rd)')+'">'+(m>=0?'+':'−')+fmt(Math.abs(m)).replace('Rp ','')+' vs beli</div>':'')+'</div></div>';
+  }).join(''):'<div class="empty" style="padding:18px"><i class="ti ti-tag"></i><p>Belum ada item yang dijual. Buka detail item → "Jual / buat teks listing".</p></div>';
+  var rev=0,net=0,prof=0;
+  soldList.forEach(function(x){var sp=Number(x.soldPrice)||0,fee=Number(x.soldFee)||0;rev+=sp;net+=sp-fee;prof+=sp-fee-(Number(x.price)||0);});
+  document.getElementById('sold-sum').innerHTML=soldList.length?'<div style="font-size:12px;line-height:1.7">'+soldList.length+' item terjual · omzet <b>'+rpFull(rev)+'</b> · bersih <b>'+rpFull(net)+'</b><br>Untung/rugi vs harga beli: <b style="color:'+(prof>=0?'var(--gn)':'var(--rd)')+'">'+(prof>=0?'+':'−')+rpFull(Math.abs(prof))+'</b></div>':'';
+  document.getElementById('sold-list').innerHTML=soldList.length?soldList.map(function(x){
+    var sp=Number(x.soldPrice)||0,fee=Number(x.soldFee)||0,pr=sp-fee-(Number(x.price)||0);
+    return '<div class="li" style="align-items:flex-start"><div class="li-th">'+(x.mainPhotoId?'<img src="/_blob/'+esc(x.mainPhotoId)+'" alt="" style="width:100%;height:100%;object-fit:cover">':'<span>'+(EMO[x.category]||'📦')+'</span>')+'</div><div class="li-info"><div class="li-name">'+esc(x.name)+'</div><div class="li-sub">'+esc(x.soldAt?String(x.soldAt).slice(0,10):'')+(x.soldNote?' · '+esc(x.soldNote):'')+'</div><span style="font-size:11px;color:var(--ac2);cursor:pointer" onclick="soldUndo(\''+x.id+'\')"><i class="ti ti-arrow-back-up"></i> batalkan</span></div><div class="wl-r"><div class="li-val">'+rpFull(sp)+'</div><div style="font-size:10px;font-weight:600;color:'+(pr>=0?'var(--gn)':'var(--rd)')+'">'+(pr>=0?'+':'−')+fmt(Math.abs(pr)).replace('Rp ','')+'</div></div></div>';
+  }).join(''):'';
+}
+function saleOpen(id){
+  var it=items.find(function(i){return i.id===id;});if(!it)return;slId=id;
+  closeM('detail-m');
+  document.getElementById('sl-title').textContent=it.name;
+  var mv=it.marketVal||it.price||0,sg=slSuggest(it),cf=condFactor(it);
+  document.getElementById('sl-info').innerHTML='Harga beli: <b>'+(it.price?rpFull(it.price):'—')+'</b> · Nilai pasar: <b>'+(mv?rpFull(mv):'—')+'</b>'+(sg?'<br>Saran harga (nilai pasar'+(cf.f<1?' disesuaikan kondisi':'')+'): <b style="color:var(--gn)">'+rpFull(sg)+'</b> <span style="color:var(--ac2);cursor:pointer;text-decoration:underline" onclick="document.getElementById(\'sl-ask\').value='+sg+';slCalc()">pakai</span>':'');
+  document.getElementById('sl-ask').value=it.askPrice||sg||'';
+  var fee=bkLS('cr_fee');document.getElementById('sl-fee').value=(fee!==null&&fee!=='')?fee:'0';
+  var loc=bkLS('cr_cod');document.getElementById('sl-loc').value=(loc!==null&&loc!=='')?loc:'Ciputat, Tangerang Selatan (COD area Tangsel)';
+  document.getElementById('sl-serial').checked=false;
+  document.getElementById('sl-sp').value=it.askPrice||sg||'';
+  document.getElementById('sl-sf').value='';
+  document.getElementById('sl-sd').value=wibDay();
+  document.getElementById('sl-sn').value='';
+  document.getElementById('sl-photo').style.display=it.mainPhotoId?'':'none';
+  slCalc();slText();
+  requestAnimationFrame(function(){requestAnimationFrame(function(){openM('sale-m');});});
+}
+function slCalc(){
+  var it=items.find(function(i){return i.id===slId;});if(!it)return;
+  var a=Number(document.getElementById('sl-ask').value)||0,f=Number(document.getElementById('sl-fee').value)||0;
+  var net=a*(1-f/100),pr=net-(Number(it.price)||0);
+  document.getElementById('sl-net').innerHTML=a?'Bersih setelah biaya ≈ <b>'+rpFull(net)+'</b> · untung/rugi vs harga beli: <b style="color:'+(pr>=0?'var(--gn)':'var(--rd)')+'">'+(pr>=0?'+':'−')+rpFull(Math.abs(pr))+'</b>':'';
+  slText();
+}
+function slText(){
+  var it=items.find(function(i){return i.id===slId;});if(!it)return;
+  var a=Number(document.getElementById('sl-ask').value)||0,fmtv=document.getElementById('sl-fmt').value,nego=document.getElementById('sl-nego').value==='nego',loc=document.getElementById('sl-loc').value.trim(),ser=document.getElementById('sl-serial').checked;
+  var HL={MISB:'MISB (baru, segel pabrik)',MIB:'MIB (mint in box, sudah dibuka)',BIB:'Box ada, ada bekas pemakaian',Loose:'Loose (tanpa box)'};
+  var cond=[];
+  cond.push(HL[it.health]||it.health||'');
+  if(it.seal)cond.push('segel pabrik utuh');
+  if(it.box&&it.health!=='Loose')cond.push('box '+it.box.toLowerCase());
+  if(it.comp==='Lengkap')cond.push('aksesori lengkap');
+  if(it.comp==='Kurang')cond.push('aksesori kurang'+(it.missing?' ('+it.missing+')':''));
+  cond=cond.filter(Boolean);
+  var spec=[];
+  if(it.brand)spec.push('Brand: '+it.brand);
+  if(it.series)spec.push('Series: '+it.series);
+  if(it.scale&&it.scale!=='Non Scale')spec.push('Skala: '+it.scale);
+  if(ser&&it.serial)spec.push('No. seri/batch: '+it.serial);
+  var t='';
+  if(fmtv==='mp'){
+    t='[WTS] '+it.name+(it.scale&&it.scale!=='Non Scale'?' '+it.scale:'')+' — '+(it.health||'')+'\n\n'
+     +spec.join('\n')+(spec.length?'\n':'')
+     +'Kondisi: '+cond.join(', ')+'\n'
+     +(it.defects?'Catatan kondisi: '+it.defects+'\n':'')
+     +'\nHarga: '+(a?rpFull(a):'tanya via chat')+(a?(nego?' (bisa nego)':' (harga pas)'):'')+'\n'
+     +(loc?'Lokasi: '+loc+'\n':'')
+     +'\nFoto detail tersedia, silakan chat. Barang original.';
+  }else{
+    t='🔥 WTS — '+it.name+(it.scale&&it.scale!=='Non Scale'?' ('+it.scale+')':'')+'\n'
+     +spec.map(function(x){return '• '+x;}).join('\n')+(spec.length?'\n':'')
+     +'• Kondisi: '+cond.join(', ')+'\n'
+     +(it.defects?'• Catatan: '+it.defects+'\n':'')
+     +'💰 '+(a?rpFull(a):'PM')+(a?(nego?' nego':' pas'):'')+'\n'
+     +(loc?'📍 '+loc+'\n':'')
+     +'Foto lengkap via PM 🙏';
+  }
+  document.getElementById('sl-text').value=t;
+}
+async function slCopy(){
+  var ta=document.getElementById('sl-text'),txt=ta.value;
+  try{await navigator.clipboard.writeText(txt);toast('Teks disalin ✓');}
+  catch(e){try{ta.focus();ta.select();document.execCommand('copy');toast('Teks disalin ✓');}catch(e2){toast('Gagal menyalin — tekan lama lalu salin manual');}}
+}
+function slPhoto(){if(slId)dlItemPhoto(slId);}
+async function slSave(){
+  var it=items.find(function(i){return i.id===slId;});if(!it||!db||!uid)return;
+  var a=Number(document.getElementById('sl-ask').value)||0;
+  bkLS('cr_fee',document.getElementById('sl-fee').value);bkLS('cr_cod',document.getElementById('sl-loc').value);
+  try{await db.doc('u/'+uid+'/items/'+slId).update({status:'For Sale',askPrice:a});toast('Disimpan sebagai For Sale ✓');}
+  catch(e){toast('Gagal: '+(e.message||e.code));}
+}
+async function slSold(){
+  var it=items.find(function(i){return i.id===slId;});if(!it||!db||!uid)return;
+  var sp=Number(document.getElementById('sl-sp').value)||0;
+  if(!sp){toast('Isi harga terjual dulu');return;}
+  var fee=Number(document.getElementById('sl-sf').value)||0;
+  if(!fee){var fp=Number(document.getElementById('sl-fee').value)||0;if(fp)fee=Math.round(sp*fp/100);}
+  if(!confirm('Tandai "'+it.name+'" terjual '+rpFull(sp)+' dan pindahkan dari koleksi ke riwayat?'))return;
+  var d=JSON.parse(JSON.stringify(it));delete d.id;
+  d.origStatus=it.status||'';d.status='Sold';d.soldPrice=sp;d.soldFee=fee;
+  d.soldAt=(document.getElementById('sl-sd').value||wibDay())+'T00:00:00+07:00';d.soldNote=document.getElementById('sl-sn').value.trim();
+  try{
+    await db.doc('u/'+uid+'/sold/'+slId).set(d);
+    await db.doc('u/'+uid+'/items/'+slId).delete();
+    closeM('sale-m');toast('Terjual ✓ — dipindah ke riwayat');slId=null;
+  }catch(e){toast('Gagal: '+(e.message||e.code));}
+}
+async function soldUndo(id){
+  var x=soldList.find(function(i){return i.id===id;});if(!x||!db||!uid)return;
+  if(!confirm('Batalkan penjualan "'+x.name+'" dan kembalikan ke koleksi?'))return;
+  var d=JSON.parse(JSON.stringify(x));delete d.id;
+  ['soldPrice','soldFee','soldAt','soldNote','origStatus'].forEach(function(k){delete d[k];});
+  d.status=(x.origStatus&&x.origStatus!=='Sold')?x.origStatus:'In Storage';
+  try{
+    await db.doc('u/'+uid+'/items/'+id).set(d);
+    await db.doc('u/'+uid+'/sold/'+id).delete();
+    toast('Dikembalikan ke koleksi ✓');
+  }catch(e){toast('Gagal: '+(e.message||e.code));}
 }
 
 // ── SUMBER NILAI (ikon bendera) ──
@@ -2087,6 +2268,10 @@ function openDetail(id){
   bP.innerHTML='<i class="ti ti-camera" style="vertical-align:-2px;margin-right:4px"></i>'+(it.mainPhotoId?'Ganti foto':'Tambah foto');
   bP.addEventListener('click',function(ev){ev.stopPropagation();askItemPhoto(id);});
   row.parentNode.insertBefore(bP,row.nextSibling);
+  var bS=document.createElement('button');bS.className='btn-s';bS.style.cssText='width:100%;margin-top:8px';
+  bS.innerHTML='<i class="ti ti-tag" style="vertical-align:-2px;margin-right:4px"></i>'+(it.status==='For Sale'?'Kelola penjualan':'Jual / buat teks listing');
+  bS.addEventListener('click',function(ev){ev.stopPropagation();saleOpen(id);});
+  bP.parentNode.insertBefore(bS,bP.nextSibling);
   var bS=document.createElement('button');bS.className='btn-p';bS.style.cssText='width:100%;margin-top:8px';
   bS.innerHTML='<i class="ti ti-photo" style="vertical-align:-2px;margin-right:4px"></i>Cek harga dari screenshot Tokopedia';
   bS.addEventListener('click',function(ev){ev.stopPropagation();openSs(id);});
