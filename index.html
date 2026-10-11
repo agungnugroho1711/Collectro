@@ -176,6 +176,12 @@ body{
 .wl-chip{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;margin-top:3px;}
 .wl-ok{background:var(--gnb);color:var(--gn);border:.5px solid var(--gn);}
 .wl-meta{font-size:10px;color:var(--t3);margin-top:2px;line-height:1.4;}
+.cd{border:.5px solid var(--b2);border-radius:var(--rs);padding:10px 12px;margin:10px 0;background:var(--s1);}
+.cd summary{font-size:12px;font-weight:700;cursor:pointer;color:var(--ac2);}
+.cd .fl{margin-top:8px;}
+.cd-chip{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;margin:2px 4px 0 0;}
+.cd-w{background:var(--amb);color:var(--am);border:.5px solid var(--am);}
+.cd-g{background:var(--gnb);color:var(--gn);border:.5px solid var(--gn);}
 .stit{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--t3);padding:0 20px;margin-bottom:8px;}
 .sec-hdr{display:flex;justify-content:space-between;align-items:center;padding:0 20px;margin-bottom:8px;}
 .see-all{font-size:12px;color:var(--ac2);cursor:pointer;}
@@ -534,6 +540,7 @@ select.fi option{background:var(--s2);}
       <option value="For Sale">For Sale</option>
     </select>
 
+    <div id="f-cond"></div>
     <div class="fl">Catatan</div>
     <textarea class="fi" id="f-notes" rows="3" placeholder="Catatan..." style="resize:none"></textarea>
 
@@ -822,6 +829,7 @@ select.fi option{background:var(--s2);}
       <option value="">— pilih status —</option>
       <option>On Display</option><option>In Storage</option><option>On Loan</option>
     </select>
+    <div id="ei-cond"></div>
     <div class="fl">Catatan</div>
     <textarea class="fi" id="ei-notes" rows="2" style="resize:vertical" placeholder="Catatan tambahan..."></textarea>
   </div>
@@ -1100,6 +1108,7 @@ async function init(){
   try{user=await claude.use('user');}catch(e){user=null;}
   try{downloads=await claude.use('downloads');}catch(e){downloads=null;}
   try{mcpx=await claude.use('mcp');}catch(e){mcpx=null;}
+  condInit();
 
   if(user){
     uid=await user.id();
@@ -1607,6 +1616,64 @@ async function rtFire(k){
   if(b){b.disabled=false;}
 }
 
+
+// ── KONDISI & KELENGKAPAN ──
+var CD_BOX=['','Mulus','Cacat ringan','Rusak','Tanpa box'];
+var CD_COMP=['','Lengkap','Kurang'];
+function condHTML(p){
+  function opts(a,lab){return a.map(function(v){return '<option value="'+v+'">'+(v||lab)+'</option>';}).join('');}
+  return '<details class="cd"><summary>Kondisi &amp; kelengkapan (opsional)</summary>'
+    +'<div class="prow"><div><div class="fl">Kondisi box</div><select class="fi" id="'+p+'-box">'+opts(CD_BOX,'— belum dinilai —')+'</select></div>'
+    +'<div><div class="fl">Aksesori</div><select class="fi" id="'+p+'-comp">'+opts(CD_COMP,'— belum dicek —')+'</select></div></div>'
+    +'<label style="display:flex;align-items:center;gap:8px;font-size:12px;margin:10px 0 0;cursor:pointer"><input type="checkbox" id="'+p+'-seal" style="accent-color:var(--ac)">Segel pabrik masih utuh</label>'
+    +'<div class="fl">Yang kurang (bila ada)</div><input class="fi" type="text" id="'+p+'-missing" placeholder="cth. efek api, tangan pengganti">'
+    +'<div class="fl">Cacat / catatan kondisi</div><input class="fi" type="text" id="'+p+'-defects" placeholder="cth. cat lecet di kaki kiri, box penyok">'
+    +'<div class="fl">Nomor seri / batch</div><input class="fi" type="text" id="'+p+'-serial">'
+    +'</details>';
+}
+function condInit(){['f','ei'].forEach(function(p){var el=document.getElementById(p+'-cond');if(el&&!el.innerHTML)el.innerHTML=condHTML(p);});}
+function condRead(p){
+  var g=function(k){var e=document.getElementById(p+'-'+k);return e?e.value:'';};
+  var seal=document.getElementById(p+'-seal');
+  return {box:g('box'),comp:g('comp'),seal:!!(seal&&seal.checked),missing:g('missing').trim(),defects:g('defects').trim(),serial:g('serial').trim()};
+}
+function condFill(p,it){
+  condInit();
+  var set=function(k,v){var e=document.getElementById(p+'-'+k);if(e)e.value=v||'';};
+  set('box',it&&it.box);set('comp',it&&it.comp);set('missing',it&&it.missing);set('defects',it&&it.defects);set('serial',it&&it.serial);
+  var seal=document.getElementById(p+'-seal');if(seal)seal.checked=!!(it&&it.seal);
+  var d=document.querySelector('#'+p+'-cond details');if(d)d.open=!!(it&&(it.box||it.comp||it.seal||it.missing||it.defects||it.serial));
+}
+function condClear(p){condFill(p,null);}
+try{condInit();}catch(e){}
+document.addEventListener('DOMContentLoaded',function(){try{condInit();}catch(e){}});
+function condFactor(it){
+  var f=1,why=[];
+  if(it.comp==='Kurang'){f*=0.9;why.push('aksesori kurang ×0,9');}
+  if(it.defects){f*=0.92;why.push('ada cacat ×0,92');}
+  if(it.health!=='Loose'){
+    if(it.box==='Cacat ringan'){f*=0.97;why.push('box cacat ringan ×0,97');}
+    if(it.box==='Rusak'){f*=0.92;why.push('box rusak ×0,92');}
+  }
+  return {f:f,why:why};
+}
+function condNeeds(it){return it.comp==='Kurang'||!!it.defects||it.box==='Rusak'||it.box==='Cacat ringan';}
+function condRows(it){
+  if(!(it.box||it.comp||it.seal||it.missing||it.defects||it.serial))return '';
+  var chips='';
+  if(it.seal)chips+='<span class="cd-chip cd-g">Segel utuh</span>';
+  if(it.comp==='Lengkap')chips+='<span class="cd-chip cd-g">Lengkap</span>';
+  if(it.comp==='Kurang')chips+='<span class="cd-chip cd-w">Kurang aksesori</span>';
+  if(it.box)chips+='<span class="cd-chip '+(it.box==='Mulus'?'cd-g':'cd-w')+'">Box: '+esc(it.box)+'</span>';
+  var h='<div class="dr" style="flex-direction:column;align-items:stretch;gap:4px"><span class="dk">Kondisi &amp; kelengkapan</span><div>'+chips+'</div>'
+    +(it.missing?'<div style="font-size:12px"><span style="color:var(--t3)">Kurang:</span> '+esc(it.missing)+'</div>':'')
+    +(it.defects?'<div style="font-size:12px"><span style="color:var(--t3)">Cacat:</span> '+esc(it.defects)+'</div>':'')
+    +(it.serial?'<div style="font-size:12px"><span style="color:var(--t3)">No. seri/batch:</span> <span style="font-family:monospace">'+esc(it.serial)+'</span></div>':'')+'</div>';
+  var cf=condFactor(it),mv=it.marketVal||it.price||0;
+  if(cf.f<1&&mv)h+='<div class="dr"><span class="dk">Perkiraan nilai jual</span><span class="dv" style="text-align:right;max-width:62%">'+fmt(Math.round(mv*cf.f/5000)*5000)+'<div style="font-size:10px;color:var(--t3);font-weight:400">nilai pasar disesuaikan kondisi: '+esc(cf.why.join(', '))+'</div></span></div>';
+  return h;
+}
+
 // ── SUMBER NILAI (ikon bendera) ──
 function srcFlag(it){
   var s=String((it&&it.marketValSrc)||'');
@@ -1760,6 +1827,7 @@ async function saveItem(){
     notes:(document.getElementById('f-notes').value||'').trim(),
     createdAt:Date.now(),mainPhotoId:null
   };
+  Object.assign(data,condRead('f'));
   // Disable button untuk prevent double submit
   var saveBtn=document.querySelector('#page-add .btn-p');
   if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='Menyimpan...';}
@@ -1771,6 +1839,7 @@ async function saveItem(){
     toast('Koleksi disimpan! 🎉');
     window._dupOK=false;var fd=document.getElementById('f-dup');if(fd)fd.innerHTML='';
     ['f-name','f-brand','f-series','f-scale','f-price','f-date','f-notes'].forEach(function(id){document.getElementById(id).value='';});
+    condClear('f');
     document.getElementById('f-health').selectedIndex=0;
     document.getElementById('f-status').selectedIndex=0;
     document.getElementById('f-stor').value='';
@@ -1999,6 +2068,7 @@ function openDetail(id){
     +(it.marketValSrc?'<div class="dr"><span class="dk">Sumber nilai</span><span class="dv" style="text-align:right;max-width:62%">'+srcFlag(it)+esc(it.marketValSrc)+'</span></div>':'')
     +'<div class="dr"><span class="dk">Lokasi</span><span class="dv">'+esc(it.storageName||'—')+'</span></div>'
     +'<div class="dr"><span class="dk">Tanggal beli</span><span class="dv">'+esc(it.buyDate||'—')+'</span></div>'
+    +condRows(it)
     +(it.notes?'<div class="dr" style="flex-direction:column;gap:4px"><span class="dk">Catatan</span><span class="dv" style="font-size:12px">'+esc(it.notes)+'</span></div>':'')
     +'<div id="detail-action-btns" style="display:flex;gap:8px;margin-top:16px"></div>'
     +'<div style="height:8px"></div>';
@@ -2044,6 +2114,7 @@ function openEditItem(id){
   document.getElementById('ei-mval').value=it.marketVal||'';
   document.getElementById('ei-date').value=it.buyDate||'';
   document.getElementById('ei-notes').value=it.notes||'';
+  condFill('ei',it);
   // Set kategori
   var sc=document.getElementById('ei-cat');
   for(var i=0;i<sc.options.length;i++)if(sc.options[i].value===it.category){sc.selectedIndex=i;break;}
@@ -2087,6 +2158,7 @@ async function saveEditItem(){
       storageId:storId,storageName:storName,
       status:document.getElementById('ei-status').value,
       notes:(document.getElementById('ei-notes').value||'').trim(),
+      box:condRead('ei').box,comp:condRead('ei').comp,seal:condRead('ei').seal,missing:condRead('ei').missing,defects:condRead('ei').defects,serial:condRead('ei').serial
     });
     var cur=items.find(function(i){return i.id===id;})||{};
     var mv=Math.round(Number(document.getElementById('ei-mval').value)||0);
@@ -2482,8 +2554,11 @@ function renderHealth(){
     {v:g.BIB||0,l:'BIB',i:'🔧',c:'warn'},{v:g.Loose||0,l:'Loose',i:'🎭',c:'bad'},
     {v:items.filter(function(i){return i.status==='On Display';}).length,l:'On Display',i:'🖼️',c:'ok'},
     {v:items.filter(function(i){return !i.storageId;}).length,l:'Tanpa lokasi',i:'❓',c:'bad'},
+    {v:items.filter(function(i){return i.comp==='Kurang';}).length,l:'Kurang aksesori',i:'🧩',c:'warn'},
+    {v:items.filter(function(i){return !!i.defects||i.box==='Rusak'||i.box==='Cacat ringan';}).length,l:'Ada cacat',i:'🩹',c:'warn'},
+    {v:items.filter(function(i){return !!i.seal;}).length,l:'Segel utuh',i:'🔒',c:'ok'},
   ].map(function(h){return '<div class="hci '+h.c+'"><div class="hci-ico">'+h.i+'</div><div class="hci-val">'+h.v+'</div><div class="hci-lbl">'+h.l+'</div></div>';}).join('');
-  var iss=items.filter(function(i){return i.health==='BIB'||i.health==='Loose';});
+  var iss=items.filter(function(i){return i.health==='BIB'||i.health==='Loose'||condNeeds(i);});
   document.getElementById('h-issues').innerHTML=iss.length?iss.map(function(it){return '<div class="li" onclick="openDetail(\''+it.id+'\')" style="border-color:var(--rd)"><div class="li-th"><span>'+(EMO[it.category]||'📦')+'</span></div><div class="li-info"><div class="li-name">'+esc(it.name)+'</div><div class="li-sub">'+esc(it.brand||'')+'</div><span class="badge brd">Grade '+(it.health||'C')+'</span></div><i class="ti ti-alert-triangle" style="color:var(--rd);font-size:18px"></i></div>';}).join(''):'<div class="empty"><i class="ti ti-shield-check"></i><p>Semua kondisi baik!</p></div>';
 }
 
