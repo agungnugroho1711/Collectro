@@ -421,6 +421,7 @@ select.fi option{background:var(--s2);}
     <div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--ac2)">Scan barang</div><div style="font-size:11px;color:var(--t3)">Foto → info &amp; estimasi harga → Koleksi / Wishlist</div></div>
     <i class="ti ti-chevron-right" style="color:var(--t3)"></i>
   </div>
+  <div id="po-warn" style="display:none;margin:10px 20px 0;background:var(--amb);border:.5px solid var(--am);border-radius:var(--rs);padding:10px 12px;font-size:12px;align-items:center;gap:10px;cursor:pointer" onclick="switchDisc(null,'po');switchTab('discover')"></div>
   <div id="wl-warn" style="display:none;margin:10px 20px 0;background:var(--gnb);border:.5px solid var(--gn);border-radius:var(--rs);padding:10px 12px;font-size:12px;align-items:center;gap:10px;cursor:pointer" onclick="switchDisc(null,'wishlist');switchTab('discover')"></div>
   <div class="dc">
     <div class="dc-row"><i class="ti ti-copy-check" style="font-size:18px;color:var(--ac2)"></i><input type="text" id="dc-q" placeholder="Cek duplikat: ketik nama barang yang ditaksir…" oninput="dcRun(this.value)" autocomplete="off"></div>
@@ -577,6 +578,7 @@ select.fi option{background:var(--s2);}
     <div class="tab active" onclick="switchDisc(this,'health')">💓 Health</div>
     <div class="tab" onclick="switchDisc(this,'wishlist')">❤️ Wishlist</div>
     <div class="tab" onclick="switchDisc(this,'events')">📅 Events</div>
+    <div class="tab" onclick="switchDisc(this,'po')">📦 PO</div>
     <div class="tab" onclick="switchDisc(this,'sale')">💸 Jual</div>
     <div class="tab" onclick="switchDisc(this,'export')">📤 Export</div>
   </div>
@@ -595,6 +597,14 @@ select.fi option{background:var(--s2);}
   </div>
 
   <!-- WISHLIST -->
+  <div id="disc-po" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:0 20px;margin-bottom:10px">
+      <span style="font-size:12px;color:var(--t3)" id="po-total">0 PO</span>
+      <div class="ib" style="width:28px;height:28px;font-size:14px" onclick="poOpen(null)"><i class="ti ti-plus"></i></div>
+    </div>
+    <div id="po-sum" style="margin:0 20px 12px"></div>
+    <div class="llist" id="po-list"></div>
+  </div>
   <div id="disc-sale" style="display:none">
     <div id="sale-sum" style="margin:0 20px 12px"></div>
     <div class="stit">Sedang dijual</div>
@@ -618,6 +628,7 @@ select.fi option{background:var(--s2);}
       <div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--ac2)">Scan barang di event</div><div style="font-size:11px;color:var(--t3)">Foto barang → info &amp; estimasi harga → simpan ke Koleksi / Wishlist</div></div>
       <i class="ti ti-chevron-right" style="color:var(--t3)"></i>
     </div>
+    <div id="po-cal" style="margin:0 20px 10px"></div>
     <div style="margin:0 20px 10px;background:var(--s1);border:.5px solid var(--b2);border-radius:var(--rs);padding:10px 14px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="openM('locpick-m')">
       <i class="ti ti-map-pin" style="font-size:18px;color:var(--ac2)"></i>
       <div style="flex:1"><div style="font-size:11px;color:var(--t3)">Lokasi</div><div style="font-size:13px;font-weight:600" id="ev-loc">📍 Jakarta &amp; sekitarnya</div></div>
@@ -898,6 +909,37 @@ select.fi option{background:var(--s2);}
   </div>
 </div>
 
+<div class="mo" id="po-m" onclick="if(event.target===this)closeM('po-m')">
+  <div class="ms" style="max-height:92vh;overflow-y:auto">
+    <div class="mh"></div>
+    <div class="mt" id="po-title">Tambah Pre-order</div>
+    <div class="fl">Nama item</div><input class="fi" type="text" id="po-name" placeholder="cth. Figuarts Zero Sabo Revolutionary Army">
+    <div class="prow">
+      <div><div class="fl">Brand</div><input class="fi" type="text" id="po-brand"></div>
+      <div><div class="fl">Kategori</div><select class="fi" id="po-cat"><option>Figure</option><option>Gunpla</option><option>Diecast</option><option>TCG</option><option>LEGO</option><option>Statue</option><option>Lainnya</option></select></div>
+    </div>
+    <div class="prow">
+      <div><div class="fl">Harga total (Rp)</div><input class="fi" type="number" id="po-price" inputmode="numeric" oninput="poCalc()"></div>
+      <div><div class="fl">Sudah dibayar (Rp)</div><input class="fi" type="number" id="po-paid" inputmode="numeric" oninput="poCalc()"></div>
+    </div>
+    <div id="po-bal" style="font-size:12px;color:var(--t3);margin:4px 0 6px"></div>
+    <div class="prow">
+      <div><div class="fl">Jatuh tempo pelunasan</div><input class="fi" type="date" id="po-due"></div>
+      <div><div class="fl">Perkiraan rilis / tiba</div><input class="fi" type="month" id="po-rel"></div>
+    </div>
+    <div class="fl">Toko / penjual</div><input class="fi" type="text" id="po-vendor" placeholder="cth. Toko X (WA 08xx)">
+    <div class="fl">Link (opsional)</div><input class="fi" type="url" id="po-link" placeholder="https://…">
+    <div class="fl">Catatan</div><textarea class="fi" id="po-notes" rows="2" style="resize:vertical" placeholder="cth. DP via transfer BCA, resi menyusul"></textarea>
+    <button class="btn-p" style="width:100%;margin-top:10px" onclick="poSave()">Simpan</button>
+    <div id="po-act" style="display:none;margin-top:10px">
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <button class="btn-s" style="flex:1" onclick="poPay()"><i class="ti ti-cash" style="vertical-align:-2px;margin-right:4px"></i>Catat pembayaran</button>
+        <button class="btn-s" style="flex:1" onclick="poArrived()"><i class="ti ti-package-import" style="vertical-align:-2px;margin-right:4px"></i>Sudah tiba → Koleksi</button>
+      </div>
+      <button class="btn-s" style="width:100%;color:var(--rd)" onclick="poDel()"><i class="ti ti-trash" style="vertical-align:-2px;margin-right:4px"></i>Hapus / batal PO</button>
+    </div>
+  </div>
+</div>
 <div class="mo" id="sale-m" onclick="if(event.target===this)closeM('sale-m')">
   <div class="ms" style="max-height:92vh;overflow-y:auto">
     <div class="mh"></div>
@@ -1083,7 +1125,7 @@ select.fi option{background:var(--s2);}
 // ── STATE ──
 var db,sample,assets,user,downloads,mcpx;
 var uid=null;
-var items=[],locs=[],wishes=[],soldList=[];
+var items=[],locs=[],wishes=[],soldList=[],poList=[];
 var curCat='',curView='g',curRad=30,curCity='jakarta',curCityName='Jakarta & sekitarnya';
 var storPath=[];
 var aiTimer=null;
@@ -1136,7 +1178,7 @@ function switchTab(t){
 }
 function switchDisc(el,id){
   if(el){document.querySelectorAll('#page-discover .tab').forEach(function(t){t.classList.remove('active');});el.classList.add('active');}
-  ['health','wishlist','events','export','sale'].forEach(function(i){
+  ['health','wishlist','events','export','sale','po'].forEach(function(i){
     document.getElementById('disc-'+i).style.display=i===id?'block':'none';
   });
   if(id==='events')renderEvents();
@@ -1144,6 +1186,7 @@ function switchDisc(el,id){
   if(id==='wishlist')renderWishlist();
   if(id==='export')renderRT();
   if(id==='sale')renderSale();
+  if(id==='po')renderPO();
 }
 
 // ── INIT ──
@@ -1180,7 +1223,7 @@ async function init(){
   }
 
   if(db&&uid){
-    subItems();subLocs();subWishes();subEvents();subSnaps();subBak();subSold();
+    subItems();subLocs();subWishes();subEvents();subSnaps();subBak();subSold();subPO();
   }else{
     renderDashboard();
   }
@@ -1418,7 +1461,7 @@ function dupFormWarn(){
 var bkBusy=false,bakList=[],bakReady=false,bakDone=false,bakTimer=null,bkPending=null;
 function bkLS(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v);}catch(e){return null;}}
 function bkCols(withHist){
-  var c={items:items,locations:locs,wishlist:wishes,events:dbEvents||[],sold:soldList};
+  var c={items:items,locations:locs,wishlist:wishes,events:dbEvents||[],sold:soldList,preorders:poList};
   if(withHist)c.vsnap=snaps;
   var o={};Object.keys(c).forEach(function(k){o[k]=JSON.parse(JSON.stringify(c[k]));});
   return o;
@@ -1572,8 +1615,8 @@ async function bkPickFile(inp){
     bkPending={cols:obj.collections,zip:zip,photos:obj.photos||null,label:f.name};bkPreview();
   }catch(e){document.getElementById('bk-body').innerHTML='<div style="color:var(--rd);font-size:12px">Gagal: '+esc(e&&e.message||e)+'</div>';}
 }
-function bkLive(col){return {items:items,locations:locs,wishlist:wishes,events:dbEvents||[],vsnap:snaps,sold:soldList}[col]||[];}
-var BK_LBL={items:'Item koleksi',sold:'Riwayat terjual',locations:'Lokasi',wishlist:'Wishlist',events:'Event',vsnap:'Riwayat nilai (hari)'};
+function bkLive(col){return {items:items,locations:locs,wishlist:wishes,events:dbEvents||[],vsnap:snaps,sold:soldList,preorders:poList}[col]||[];}
+var BK_LBL={items:'Item koleksi',sold:'Riwayat terjual',preorders:'Pre-order',locations:'Lokasi',wishlist:'Wishlist',events:'Event',vsnap:'Riwayat nilai (hari)'};
 function bkPreview(){
   var c=bkPending.cols,rows='',tot=0;
   Object.keys(BK_LBL).forEach(function(k){
@@ -1853,6 +1896,115 @@ async function soldUndo(id){
     await db.doc('u/'+uid+'/sold/'+id).delete();
     toast('Dikembalikan ke koleksi ✓');
   }catch(e){toast('Gagal: '+(e.message||e.code));}
+}
+
+
+// ── PRE-ORDER & KALENDER RILIS ──
+var poId=null;
+var MON=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+function subPO(){
+  try{db.collection('u/'+uid+'/preorders').onSnapshot(function(snap){
+    poList=snap.docs.filter(function(d){return d.exists;}).map(function(d){return Object.assign({id:d.id},d.data());});
+    renderPO();
+  });}catch(x){console.warn('po',x);}
+}
+function dayDiff(d){
+  if(!d)return null;
+  var a=new Date(wibDay()+'T00:00:00Z').getTime(),b=new Date(String(d).slice(0,10)+'T00:00:00Z').getTime();
+  return isNaN(b)?null:Math.round((b-a)/864e5);
+}
+function relLabel(m){if(!m)return '';var p=String(m).split('-');return (MON[Number(p[1])-1]||p[1])+' '+p[0];}
+function relDiff(m){ // hari sampai akhir bulan perkiraan rilis
+  if(!m)return null;var p=String(m).split('-'),y=Number(p[0]),mo=Number(p[1]);if(!y||!mo)return null;
+  var end=new Date(Date.UTC(y,mo,0)).toISOString().slice(0,10);return dayDiff(end);
+}
+function poBalance(o){return Math.max(0,(Number(o.price)||0)-(Number(o.paid)||0));}
+function poDueTxt(o){
+  var bal=poBalance(o);if(!bal)return {t:'Lunas',c:'cd-g'};
+  var d=dayDiff(o.due);
+  if(d===null)return {t:'Sisa '+fmt(bal),c:'cd-w'};
+  if(d<0)return {t:'Lewat '+(-d)+' hari · sisa '+fmt(bal),c:'cd-w',hot:1};
+  if(d===0)return {t:'Jatuh tempo HARI INI · sisa '+fmt(bal),c:'cd-w',hot:1};
+  return {t:'Bayar '+d+' hari lagi · sisa '+fmt(bal),c:d<=7?'cd-w':'cd-g',hot:d<=7?1:0};
+}
+function poSorted(){
+  return poList.slice().sort(function(a,b){
+    var da=dayDiff(a.due),db_=dayDiff(b.due);
+    var ka=da===null?(relDiff(a.release)===null?1e9:relDiff(a.release)+5000):da,kb=db_===null?(relDiff(b.release)===null?1e9:relDiff(b.release)+5000):db_;
+    return ka-kb;
+  });
+}
+function renderPO(){
+  var tot=document.getElementById('po-total');if(tot)tot.textContent=poList.length+' PO';
+  // dashboard banner
+  var hot=poList.filter(function(o){return poDueTxt(o).hot;});
+  var w=document.getElementById('po-warn');
+  if(w){
+    if(hot.length){w.style.display='flex';w.innerHTML='<i class="ti ti-calendar-due" style="font-size:20px;color:var(--am)"></i><div style="flex:1"><b>'+hot.length+' PO perlu pelunasan ≤ 7 hari</b><div style="font-size:11px;color:var(--t3)">'+esc(hot.slice(0,2).map(function(o){return o.name;}).join(', '))+(hot.length>2?' …':'')+'</div></div><i class="ti ti-chevron-right" style="color:var(--t3)"></i>';}
+    else w.style.display='none';
+  }
+  // events tab mini schedule
+  var cal=document.getElementById('po-cal');
+  if(cal){
+    var up=poSorted().filter(function(o){var d=dayDiff(o.due);return (d!==null&&d<=30)||(relDiff(o.release)!==null&&relDiff(o.release)<=45);}).slice(0,3);
+    cal.innerHTML=up.length?'<div class="card" style="padding:10px 12px"><div style="font-size:11px;font-weight:700;color:var(--ac2);margin-bottom:4px"><i class="ti ti-package" style="vertical-align:-2px"></i> PO terdekat</div>'+up.map(function(o){var dt=poDueTxt(o);return '<div style="font-size:12px;padding:3px 0;cursor:pointer" onclick="poOpen(\''+o.id+'\')"><b>'+esc(o.name)+'</b><div style="font-size:11px;color:var(--t3)">'+esc(dt.t)+(o.release?' · rilis '+esc(relLabel(o.release)):'')+'</div></div>';}).join('')+'</div>':'';
+  }
+  var sum=document.getElementById('po-sum'),lst=document.getElementById('po-list');if(!sum||!lst)return;
+  var due=0,paid=0;poList.forEach(function(o){due+=poBalance(o);paid+=Number(o.paid)||0;});
+  sum.innerHTML=poList.length?'<div class="sg" style="padding:0;margin-bottom:0"><div class="sc"><div class="sl">Total sisa bayar</div><div class="sv" style="color:var(--am);font-size:17px">'+rpFull(due)+'</div><div class="ss">'+poList.filter(function(o){return poBalance(o)>0;}).length+' PO belum lunas</div></div><div class="sc"><div class="sl">Sudah dibayar</div><div class="sv" style="color:var(--gn);font-size:17px">'+rpFull(paid)+'</div><div class="ss">'+poList.length+' PO aktif</div></div></div>':'';
+  lst.innerHTML=poList.length?poSorted().map(function(o){
+    var dt=poDueTxt(o),rd=relDiff(o.release);
+    return '<div class="li" style="cursor:pointer;align-items:flex-start" onclick="poOpen(\''+o.id+'\')"><div class="li-th"><span>'+(EMO[o.category]||'📦')+'</span></div><div class="li-info"><div class="li-name">'+esc(o.name)+'</div><div class="li-sub">'+esc(o.brand||'')+(o.vendor?' · '+esc(o.vendor):'')+'</div><span class="cd-chip '+dt.c+'">'+esc(dt.t)+'</span>'+(o.release?'<span class="cd-chip cd-g" style="'+(rd!==null&&rd<0?'background:var(--amb);color:var(--am);border-color:var(--am)':'')+'">Rilis '+esc(relLabel(o.release))+(rd!==null&&rd<0?' (lewat)':'')+'</span>':'')+'</div><div class="wl-r"><div class="li-val">'+fmt(o.price)+'</div><div class="wl-meta">dibayar '+fmt(o.paid||0)+'</div></div></div>';
+  }).join(''):'<div class="empty" style="padding:18px"><i class="ti ti-package"></i><p>Belum ada pre-order. Tekan + untuk mencatat DP atau pelunasan yang menunggu barang tiba.</p></div>';
+}
+function poOpen(id){
+  var o=id?poList.find(function(x){return x.id===id;}):null;poId=o?o.id:null;
+  document.getElementById('po-title').textContent=o?'Pre-order':'Tambah Pre-order';
+  var set=function(k,v){document.getElementById('po-'+k).value=v==null?'':v;};
+  set('name',o&&o.name);set('brand',o&&o.brand);set('price',o&&o.price);set('paid',o&&o.paid);set('due',o&&o.due);set('rel',o&&o.release);set('vendor',o&&o.vendor);set('link',o&&o.link);set('notes',o&&o.notes);
+  var c=document.getElementById('po-cat');c.selectedIndex=0;if(o)for(var i=0;i<c.options.length;i++)if(c.options[i].value===o.category){c.selectedIndex=i;break;}
+  document.getElementById('po-act').style.display=o?'block':'none';
+  poCalc();openM('po-m');
+}
+function poCalc(){
+  var p=Number(document.getElementById('po-price').value)||0,a=Number(document.getElementById('po-paid').value)||0;
+  document.getElementById('po-bal').innerHTML=p?'Sisa pelunasan: <b>'+rpFull(Math.max(0,p-a))+'</b>'+(a>p?' <span style="color:var(--am)">(dibayar melebihi harga)</span>':''):'';
+}
+async function poSave(){
+  var name=document.getElementById('po-name').value.trim();
+  if(!name){toast('Nama wajib diisi');return;}
+  if(!db||!uid){toast('Login diperlukan');return;}
+  var link=document.getElementById('po-link').value.trim();
+  var d={name:name,brand:document.getElementById('po-brand').value.trim(),category:document.getElementById('po-cat').value,price:Number(document.getElementById('po-price').value)||0,paid:Number(document.getElementById('po-paid').value)||0,due:document.getElementById('po-due').value||'',release:document.getElementById('po-rel').value||'',vendor:document.getElementById('po-vendor').value.trim(),link:safeUrl(link)?link:'',notes:document.getElementById('po-notes').value.trim()};
+  try{
+    if(poId)await db.doc('u/'+uid+'/preorders/'+poId).update(d);
+    else{d.createdAt=Date.now();await db.collection('u/'+uid+'/preorders').add(d);}
+    closeM('po-m');toast('Pre-order disimpan ✓');
+  }catch(e){toast('Gagal: '+(e.message||e.code));}
+}
+async function poPay(){
+  var o=poList.find(function(x){return x.id===poId;});if(!o)return;
+  var v=prompt('Jumlah pembayaran baru (Rp):',String(poBalance(o)||''));if(v===null)return;
+  var n=Number(String(v).replace(/[^0-9]/g,''))||0;if(!n)return;
+  try{await db.doc('u/'+uid+'/preorders/'+poId).update({paid:(Number(o.paid)||0)+n});toast('Pembayaran dicatat ✓');closeM('po-m');}
+  catch(e){toast('Gagal: '+(e.message||e.code));}
+}
+async function poArrived(){
+  var o=poList.find(function(x){return x.id===poId;});if(!o||!db||!uid)return;
+  var bal=poBalance(o);
+  if(!confirm('Pindahkan "'+o.name+'" ke koleksi?'+(bal?'\n\nCatatan: masih ada sisa bayar '+rpFull(bal)+'.':'')))return;
+  try{
+    var it={name:o.name,brand:o.brand||'',series:'',category:o.category||'Figure',scale:'',health:'MISB',price:Number(o.price)||0,buyDate:wibDay(),storageId:'',storageName:'',status:'In Storage',notes:(o.notes||'')+(o.vendor?(o.notes?' · ':'')+'Dari: '+o.vendor:''),mainPhotoId:null,createdAt:Date.now()};
+    await db.collection('u/'+uid+'/items').add(it);
+    await db.doc('u/'+uid+'/preorders/'+poId).delete();
+    closeM('po-m');toast('Dipindah ke koleksi ✓ — lengkapi lokasi & foto');
+  }catch(e){toast('Gagal: '+(e.message||e.code));}
+}
+async function poDel(){
+  if(!poId)return;
+  if(!confirm('Hapus pre-order ini?'))return;
+  try{await db.doc('u/'+uid+'/preorders/'+poId).delete();closeM('po-m');toast('Dihapus');}
+  catch(e){toast('Gagal');}
 }
 
 // ── SUMBER NILAI (ikon bendera) ──
