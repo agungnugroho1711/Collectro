@@ -172,6 +172,10 @@ body{
 .dpv ul{margin:4px 0 0 16px;padding:0;}
 .dpv li{margin:2px 0;}
 .dpv .df{color:var(--t3);font-size:11px;}
+.wl-r{text-align:right;min-width:0;}
+.wl-chip{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;margin-top:3px;}
+.wl-ok{background:var(--gnb);color:var(--gn);border:.5px solid var(--gn);}
+.wl-meta{font-size:10px;color:var(--t3);margin-top:2px;line-height:1.4;}
 .stit{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--t3);padding:0 20px;margin-bottom:8px;}
 .sec-hdr{display:flex;justify-content:space-between;align-items:center;padding:0 20px;margin-bottom:8px;}
 .see-all{font-size:12px;color:var(--ac2);cursor:pointer;}
@@ -411,6 +415,7 @@ select.fi option{background:var(--s2);}
     <div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--ac2)">Scan barang</div><div style="font-size:11px;color:var(--t3)">Foto → info &amp; estimasi harga → Koleksi / Wishlist</div></div>
     <i class="ti ti-chevron-right" style="color:var(--t3)"></i>
   </div>
+  <div id="wl-warn" style="display:none;margin:10px 20px 0;background:var(--gnb);border:.5px solid var(--gn);border-radius:var(--rs);padding:10px 12px;font-size:12px;align-items:center;gap:10px;cursor:pointer" onclick="switchDisc(null,'wishlist');switchTab('discover')"></div>
   <div id="bk-warn" style="display:none;margin:10px 20px 0;background:var(--amb);border:.5px solid var(--am);border-radius:var(--rs);padding:10px 12px;font-size:12px;align-items:center;gap:10px"></div>
   <div class="dc">
     <div class="dc-row"><i class="ti ti-copy-check" style="font-size:18px;color:var(--ac2)"></i><input type="text" id="dc-q" placeholder="Cek duplikat: ketik nama barang yang ditaksir…" oninput="dcRun(this.value)" autocomplete="off"></div>
@@ -844,6 +849,7 @@ select.fi option{background:var(--s2);}
       <div><div class="fl">Kategori</div><select class="fi" id="w-cat"><option>Figure</option><option>Gunpla</option><option>Diecast</option><option>TCG</option><option>LEGO</option><option>Statue</option></select></div>
     </div>
     <div class="fl">Estimasi harga (Rp)</div><input class="fi" type="number" id="w-price">
+    <div class="fl">Harga target beli (Rp) — opsional</div><input class="fi" type="number" id="w-target" inputmode="numeric" placeholder="Beri tahu saya kalau harga referensi ≤ ini">
     <div class="fl">Status</div>
     <select class="fi" id="w-status"><option>Preorder</option><option>Available</option><option>Secondhand</option><option>Closed PO</option></select>
     <button class="btn-p" onclick="saveWish()" style="background:linear-gradient(135deg,#7c3aed,#a855f7)"><i class="ti ti-heart" style="vertical-align:-2px;margin-right:4px"></i>Simpan ke Wishlist</button>
@@ -871,6 +877,22 @@ select.fi option{background:var(--s2);}
   </div>
 </div>
 
+<div class="mo" id="wedit-m" onclick="if(event.target===this)closeM('wedit-m')">
+  <div class="ms" style="max-height:88vh;overflow-y:auto">
+    <div class="mh"></div>
+    <div class="mt" id="we-title">Wishlist</div>
+    <div id="we-ref" style="font-size:12px;line-height:1.6;margin-bottom:10px"></div>
+    <div class="fl">Harga target beli (Rp)</div><input class="fi" type="number" id="we-target" inputmode="numeric">
+    <div class="fl">Estimasi harga (Rp)</div><input class="fi" type="number" id="we-price" inputmode="numeric">
+    <div class="fl">Status</div>
+    <select class="fi" id="we-status"><option>Preorder</option><option>Available</option><option>Secondhand</option><option>Closed PO</option></select>
+    <button class="btn-p" onclick="weSave()" style="margin-top:12px">Simpan</button>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn-s" style="flex:1" onclick="weBought()"><i class="ti ti-package-import" style="vertical-align:-2px;margin-right:4px"></i>Sudah dibeli → Koleksi</button>
+      <button class="btn-s" style="flex:1;color:var(--rd)" onclick="weDel()"><i class="ti ti-trash" style="vertical-align:-2px;margin-right:4px"></i>Hapus</button>
+    </div>
+  </div>
+</div>
 <div class="mo" id="bk-m" onclick="if(event.target===this&&!bkBusy)closeM('bk-m')">
   <div class="ms" style="max-height:88vh;overflow-y:auto">
     <div class="mh"></div>
@@ -2429,21 +2451,74 @@ function renderHealth(){
 }
 
 // ── WISHLIST ──
+function wlState(w){
+  var ref=Number(w.refPrice)||0,tg=Number(w.target)||0,h=Array.isArray(w.refHist)?w.refHist:[],d=null;
+  if(h.length>=2){var last=h[h.length-1][1];for(var i=h.length-2;i>=0;i--){if(h[i][1]!==last){d=last-h[i][1];break;}}}
+  return {ref:ref,tg:tg,below:!!(ref&&tg&&ref<=tg),delta:d,hist:h};
+}
+function wlWarn(){
+  var el=document.getElementById('wl-warn');if(!el)return;
+  var n=wishes.filter(function(w){return wlState(w).below;});
+  if(n.length){el.style.display='flex';el.innerHTML='<i class="ti ti-bell-ringing" style="font-size:20px;color:var(--gn)"></i><div style="flex:1"><b>'+n.length+' item wishlist di bawah harga target</b><div style="font-size:11px;color:var(--t3)">'+esc(n.slice(0,3).map(function(w){return w.name;}).join(', '))+(n.length>3?' …':'')+'</div></div><i class="ti ti-chevron-right" style="color:var(--t3)"></i>';}
+  else el.style.display='none';
+}
 function renderWishlist(){
+  wlWarn();
   var el=document.getElementById('wish-list');if(!el)return;
   var tot=document.getElementById('wish-total');
   if(tot)tot.textContent=wishes.length+' item';
   el.innerHTML=wishes.length?wishes.map(function(w){
-    return '<div class="li"><div class="li-th"><span>'+(EMO[w.category]||'📦')+'</span></div><div class="li-info"><div class="li-name">'+esc(w.name||'—')+'</div><div class="li-sub">'+esc(w.brand||'')+(w.category?' · '+w.category:'')+'</div><span class="badge '+(w.status==='Available'?'bgn':w.status==='Preorder'?'brd':'bam')+'">'+esc(w.status||'')+'</span></div><div class="li-r"><div class="li-val">'+fmt(w.price)+'</div><i class="ti ti-trash" style="font-size:16px;color:var(--rd);cursor:pointer" onclick="delWish(\''+w.id+'\')"></i></div></div>';
+    var st=wlState(w),link=safeUrl(w.refLink);
+    var right='<div class="wl-r"><div class="li-val">'+(st.ref?'🇯🇵 '+fmt(st.ref):fmt(w.price))+'</div>'
+      +(st.delta?'<div style="font-size:10px;font-weight:600;color:'+(st.delta<0?'var(--gn)':'var(--rd)')+'">'+(st.delta<0?'▼ ':'▲ ')+fmt(Math.abs(st.delta)).replace('Rp ','')+'</div>':'')
+      +(st.below?'<span class="wl-chip wl-ok">🔔 ≤ target</span>':'')
+      +'<div class="wl-meta">'+(st.tg?'Target '+fmt(st.tg):'Target belum diisi')+'</div>'
+      +(w.refAt?'<div class="wl-meta">Dicek '+esc(fmtDT(w.refAt))+'</div>':'')+'</div>';
+    return '<div class="li" style="cursor:pointer;align-items:flex-start" onclick="weOpen(\''+w.id+'\')"><div class="li-th">'+(w.mainPhotoId?'<img src="/_blob/'+esc(w.mainPhotoId)+'" alt="" style="width:100%;height:100%;object-fit:cover">':'<span>'+(EMO[w.category]||'📦')+'</span>')+'</div><div class="li-info"><div class="li-name">'+esc(w.name||'—')+'</div><div class="li-sub">'+esc(w.brand||'')+(w.category?' · '+w.category:'')+'</div><span class="badge '+(w.status==='Available'?'bgn':w.status==='Preorder'?'brd':'bam')+'">'+esc(w.status||'')+'</span>'+(link?' <a href="'+esc(link)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:11px;color:var(--ac2)"><i class="ti ti-external-link"></i> toko</a>':'')+'</div>'+right+'</div>';
   }).join(''):'<div class="empty"><i class="ti ti-heart"></i><p>Wishlist masih kosong</p></div>';
+}
+var weId=null;
+function weOpen(id){
+  var w=wishes.find(function(x){return x.id===id;});if(!w)return;weId=id;
+  var st=wlState(w);
+  document.getElementById('we-title').textContent=w.name||'Wishlist';
+  var h=st.hist,spark=h.length>=2?sparkSVG(h.map(function(x){return x[1];}),300,40,st.delta&&st.delta>0?'var(--rd)':'var(--gn)'):'';
+  document.getElementById('we-ref').innerHTML=st.ref?'Harga referensi: <b>🇯🇵 '+fmt(st.ref)+'</b>'+(w.refSrc?' <span style="color:var(--t3)">· '+esc(w.refSrc)+'</span>':'')+(w.refAt?'<br><span style="color:var(--t3)">Dicek '+esc(fmtDT(w.refAt))+'</span>':'')+(h.length>=2?'<br><span style="color:var(--t3)">'+h.length+' pengecekan tercatat</span>'+spark:''):'<span style="color:var(--t3)">Belum ada harga referensi. Dipantau otomatis oleh scheduler wishlist (Selasa &amp; Jumat).</span>';
+  document.getElementById('we-target').value=w.target||'';
+  document.getElementById('we-price').value=w.price||'';
+  var ss=document.getElementById('we-status');for(var i=0;i<ss.options.length;i++)if(ss.options[i].value===w.status){ss.selectedIndex=i;break;}
+  openM('wedit-m');
+}
+async function weSave(){
+  if(!weId||!db||!uid)return;
+  try{
+    await db.doc('u/'+uid+'/wishlist/'+weId).update({target:Number(document.getElementById('we-target').value)||0,price:Number(document.getElementById('we-price').value)||0,status:document.getElementById('we-status').value});
+    closeM('wedit-m');toast('Wishlist diperbarui ✓');
+  }catch(e){toast('Gagal: '+(e.message||e.code));}
+}
+async function weDel(){
+  if(!weId)return;
+  if(!confirm('Hapus dari wishlist?'))return;
+  await delWish(weId);closeM('wedit-m');
+}
+async function weBought(){
+  var w=wishes.find(function(x){return x.id===weId;});if(!w||!db||!uid)return;
+  var st=wlState(w);
+  if(!confirm('Pindahkan "'+w.name+'" ke koleksi?'))return;
+  try{
+    var d={name:w.name,brand:w.brand||'',series:'',category:w.category||'Figure',scale:'',health:'MISB',price:Number(w.target)||Number(w.price)||st.ref||0,buyDate:'',storageId:'',storageName:'',status:'In Storage',notes:'',mainPhotoId:w.mainPhotoId||null,createdAt:Date.now()};
+    await db.collection('u/'+uid+'/items').add(d);
+    await db.doc('u/'+uid+'/wishlist/'+weId).delete();
+    closeM('wedit-m');toast('Dipindahkan ke koleksi ✓ — lengkapi harga beli & lokasi');
+  }catch(e){toast('Gagal: '+(e.message||e.code));}
 }
 async function saveWish(){
   var name=(document.getElementById('w-name').value||'').trim();
   if(!name){toast('Nama wajib diisi');return;}
   if(!db||!uid){toast('Login diperlukan');return;}
   try{
-    await db.collection('u/'+uid+'/wishlist').add({name:name,brand:(document.getElementById('w-brand').value||'').trim(),category:document.getElementById('w-cat').value,price:Number(document.getElementById('w-price').value)||0,status:document.getElementById('w-status').value,createdAt:Date.now()});
-    closeM('addwish-m');document.getElementById('w-name').value='';document.getElementById('w-price').value='';toast('Ditambahkan ❤️');
+    await db.collection('u/'+uid+'/wishlist').add({name:name,brand:(document.getElementById('w-brand').value||'').trim(),category:document.getElementById('w-cat').value,price:Number(document.getElementById('w-price').value)||0,target:Number(document.getElementById('w-target').value)||0,status:document.getElementById('w-status').value,createdAt:Date.now()});
+    closeM('addwish-m');document.getElementById('w-name').value='';document.getElementById('w-price').value='';document.getElementById('w-target').value='';toast('Ditambahkan ❤️');
   }catch(e){toast('Gagal: '+(e.message||e.code));}
 }
 async function delWish(id){
