@@ -591,7 +591,7 @@ select.fi option{background:var(--s2);}
   <div id="disc-wishlist" style="display:none">
     <div style="display:flex;justify-content:space-between;align-items:center;padding:0 20px;margin-bottom:10px">
       <span style="font-size:12px;color:var(--t3)" id="wish-total">0 item</span>
-      <div class="ib" style="width:28px;height:28px;font-size:14px" onclick="openM('addwish-m')"><i class="ti ti-plus"></i></div>
+      <div style="display:flex;gap:8px;align-items:center"><button class="btn-s" style="padding:5px 10px;font-size:11px" onclick="rtFire('wish')"><i class="ti ti-refresh" style="vertical-align:-2px;margin-right:3px"></i>Cek harga</button><div class="ib" style="width:28px;height:28px;font-size:14px" onclick="openM('addwish-m')"><i class="ti ti-plus"></i></div></div>
     </div>
     <div class="llist" id="wish-list"></div>
   </div>
@@ -643,6 +643,10 @@ select.fi option{background:var(--s2);}
         <button class="btn-p" style="background:linear-gradient(135deg,#059669,#34d399)" onclick="doExport('xlsx')"><i class="ti ti-file-spreadsheet" style="vertical-align:-2px;margin-right:4px"></i>Download Excel (.xlsx)</button>
         <button class="btn-s" onclick="doExport('csv')"><i class="ti ti-download" style="vertical-align:-2px;margin-right:4px"></i>Download CSV</button>
       </div>
+    </div>
+    <div class="card" style="margin-bottom:12px;overflow:hidden" id="rt-card">
+      <div style="padding:14px;border-bottom:.5px solid var(--b1)"><div style="font-size:13px;font-weight:700;margin-bottom:2px"><i class="ti ti-player-play" style="vertical-align:-2px;margin-right:4px;color:var(--ac2)"></i>Jalankan scheduler sekarang</div><div style="font-size:11px;color:var(--t3)">Memicu routine di cloud sekali jalan. Hasil masuk ke data dan muncul di aplikasi dalam beberapa menit; setiap run memakai kuota langganan.</div></div>
+      <div style="padding:14px;display:flex;flex-direction:column;gap:8px" id="rt-list"></div>
     </div>
     <div class="card" style="margin-bottom:12px;overflow:hidden" id="bk-card">
       <div style="padding:14px;border-bottom:.5px solid var(--b1)"><div style="font-size:13px;font-weight:700;margin-bottom:2px"><i class="ti ti-shield-check" style="vertical-align:-2px;margin-right:4px;color:var(--gn)"></i>Backup &amp; Pulihkan</div><div style="font-size:11px;color:var(--t3)">Cadangan seluruh data (koleksi, lokasi, wishlist, event, riwayat nilai). Backup otomatis tersimpan di database tiap 7 hari (4 salinan terakhir); unduhan ke perangkat melindungi bila artifact terhapus.</div></div>
@@ -1024,7 +1028,7 @@ select.fi option{background:var(--s2);}
 
 <script>
 // ── STATE ──
-var db,sample,assets,user,downloads;
+var db,sample,assets,user,downloads,mcpx;
 var uid=null;
 var items=[],locs=[],wishes=[];
 var curCat='',curView='g',curRad=30,curCity='jakarta',curCityName='Jakarta & sekitarnya';
@@ -1085,6 +1089,7 @@ function switchDisc(el,id){
   if(id==='events')renderEvents();
   if(id==='health')renderHealth();
   if(id==='wishlist')renderWishlist();
+  if(id==='export')renderRT();
 }
 
 // ── INIT ──
@@ -1094,6 +1099,7 @@ async function init(){
   try{assets=await claude.use('assets');}catch(e){assets=null;}
   try{user=await claude.use('user');}catch(e){user=null;}
   try{downloads=await claude.use('downloads');}catch(e){downloads=null;}
+  try{mcpx=await claude.use('mcp');}catch(e){mcpx=null;}
 
   if(user){
     uid=await user.id();
@@ -1568,6 +1574,37 @@ async function bkRestore(){
     toast('Pemulihan selesai ✓');bkPending=null;go.style.display='none';
   }catch(e){console.warn('restore',e);say('Gagal: '+(e&&e.message||e));go.disabled=false;}
   bkBusy=false;
+}
+
+
+// ── JALANKAN ROUTINE (on-demand) ──
+var RT={
+  wish:{id:'trig_01Ngo2LfgmR6RUm4sjwgwcKD',name:'Cek harga wishlist',desc:'Harga referensi item wishlist (toko Jepang)'},
+  value:{id:'trig_01MUAEtGsCYBtF2EahuDMn61',name:'Refresh nilai koleksi',desc:'Satu batch item (±25–50) per jalan'},
+  events:{id:'trig_018whX97iaSxL9NQf8XuUoMK',name:'Update event',desc:'Cari event baru / perbarui jadwal'},
+  poster:{id:'trig_01TyeHXjSKWrQfn7i8FNKpXg',name:'Poster event',desc:'Pasang poster untuk event yang belum punya'}
+};
+function rtLast(k){var v=bkLS('cr_rt_'+k);return v?fmtDT(v):'belum pernah dari sini';}
+function renderRT(){
+  var el=document.getElementById('rt-list');if(!el)return;
+  el.innerHTML=Object.keys(RT).map(function(k){var r=RT[k];
+    return '<div style="display:flex;align-items:center;gap:10px"><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">'+esc(r.name)+'</div><div style="font-size:11px;color:var(--t3)">'+esc(r.desc)+' · terakhir dipicu: <span id="rt-last-'+k+'">'+esc(rtLast(k))+'</span></div></div><button class="btn-s" id="rt-b-'+k+'" style="padding:7px 12px;font-size:12px" onclick="rtFire(\''+k+'\')"><i class="ti ti-player-play" style="vertical-align:-2px;margin-right:3px"></i>Jalankan</button></div>';
+  }).join('')+(mcpx?'':'<div style="font-size:11px;color:var(--am)">Tombol butuh konektor "Claude Code Remote" di akun Anda dan izin untuk halaman ini.</div>');
+}
+async function rtFire(k){
+  var r=RT[k];if(!r)return;
+  if(!mcpx){toast('Fitur ini butuh konektor Claude Code Remote (belum tersedia di tampilan ini)');return;}
+  if(!confirm('Jalankan "'+r.name+'" sekarang? Ini memulai sesi cloud dan memakai kuota langganan.'))return;
+  var b=document.getElementById('rt-b-'+k);if(b){b.disabled=true;}
+  try{
+    await mcpx.callTool('Claude Code Remote','fire_trigger',{trigger_id:r.id});
+    bkLS('cr_rt_'+k,new Date().toISOString());var l=document.getElementById('rt-last-'+k);if(l)l.textContent=rtLast(k);
+    toast('"'+r.name+'" dijalankan ✓ — hasil muncul dalam beberapa menit');
+  }catch(e){
+    var c=e&&e.code,m={server_not_connected:'Konektor Claude Code Remote belum terhubung (Settings → Connectors)',needs_reauth:'Konektor perlu dihubungkan ulang (Settings → Connectors)',not_in_manifest:'Izin konektor untuk halaman ini ditolak/dimatikan',not_granted:'Izin belum diberikan untuk halaman ini',approval_required:'Perlu persetujuan; coba tekan lagi',tool_error:'Gagal memicu: '+(e&&e.message||''),blocked_by_policy:'Diblokir oleh kebijakan organisasi'};
+    toast(m[c]||'Gagal memicu ('+(c||'error')+')');console.warn('fire',e);
+  }
+  if(b){b.disabled=false;}
 }
 
 // ── SUMBER NILAI (ikon bendera) ──
